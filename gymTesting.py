@@ -1,5 +1,5 @@
 import gym
-env = gym.make('CartPole-v0')
+env = gym.make('LunarLander-v2')
 env.reset()
 
 OBSERVATION_INDEX = 0
@@ -9,8 +9,8 @@ INFO_INDEX = 3
 
 for _ in range(30):
     env.render()
-    result = env.step(env.action_space.sample())
-    if result[DONE_INDEX] == True:
+    observation, reward, done, info = env.step(env.action_space.sample())
+    if done == True:
         break
  
 env.close()
