@@ -85,15 +85,27 @@ preps the recorded data of each match into such a way that it can be fed properl
 
 runs a training epoch on the preparedData from all the last round of recorded fights
 
-## Scenario.json
+## Jason Files
 
-Scenario.json specifies several conditions over which that define the extent of the simulation or specify what criteria the agent will be judged on. The two main specifications are the reward function and the done flag.
+There are three jason files that the gym environment reads in order to setup the high level "rules" of the emulation. These files are metadata.json, data.json, and scenario.json. 
 
-### Reward Function
+### Metadata.json
+
+The metadata.json file holds high level global information about the game environment. For now this simply tells the environment the default save state that the game ROM should launch in if none has been selected. 
+
+### Data.json
+
+The data.json file is an abstraction of the games ram into callable variables with specified data types that the environment, user, and environment.json files can interact with. For now it specifies the memory addresses where the count down timer, agent round win counter, enemy round win counter, score, agent health, and enemy health can be found. 
+
+### Scenario.json
+
+Scenario.json specifies several conditions over which that define the goal of the simulation or specify what criteria the agent will be judged on for rewards. The two main specifications are the reward function and the done flag.
+
+#### Reward Function
 
 The reward functione specifies what variables make up the reward function and what weights are assigned, whether that be positive or negative, to each variable. After each action is taken by an agent a reward calculated by this function is returned to the agent. This is then recorded and stored for later training after all fights in an epoch are finished. For now the default reward function utilizes the agent's health, the enemy health, the number of rounds the agent has won, and the number of rounds the enemy has won. 
 
-### Done
+#### Done
 
 Done is a flag that signifies whether the current environment has completed. Currently Done is set if the enemey or the agent get two round wins, which in game is what determines if a match is over. So once the match is over the agent moves onto the next save state.
 
