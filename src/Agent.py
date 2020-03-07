@@ -1,8 +1,11 @@
-import argparse, retro, threading
+import argparse, retro, threading, os
 
 class Agent():
 
-    states = ['guile', 'chunli', 'zangief']
+    def getStates():
+        files = os.listdir('../StreetFighterIISpecialChampionEdition-Genesis')
+        states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
+        return states
 
     def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= True):
         self.game = game
@@ -11,7 +14,7 @@ class Agent():
         self.initializeNetwork()
 
     def train(self):
-        for state in Agent.states:
+        for state in Agent.getStates():
             self.play(state= state)
         self.reviewGames()
 
@@ -41,13 +44,13 @@ class Agent():
     def reviewGames(self):
         self.prepareData()
         xTrain, xTest, yTrain, yTest = self.getTrainTestSplit()
-        self.trainNetwork(xTrain, xTest, yTrain, yTest)
+        trainNetwork(self, xTrain, xTest, yTrain, yTest)
 
     def prepareData(self):
         pass
 
     def getTrainTestSplit(self):
-        pass
+        retturn [], [], [], []
 
     def trainNetwork(self, xTrain, xTest, yTrain, yTest):
         pass
