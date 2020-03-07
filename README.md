@@ -85,6 +85,8 @@ preps the recorded data of each match into such a way that it can be fed properl
 
 runs a training epoch on the preparedData from all the last round of recorded fights
 
+---
+
 ## Jason Files
 
 There are three jason files that the gym environment reads in order to setup the high level "rules" of the emulation. These files are metadata.json, data.json, and scenario.json. 
