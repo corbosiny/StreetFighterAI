@@ -17,10 +17,6 @@ This should be called in the top level directory of the repo. This will install 
 **-gym-retro**   
 **-retro**  
 
-And it will install the following libraries you will need to create and train your agent:
-
-**-tensorflow**  
-
 These libraries can sometimes have serious issues installing themselves or their dependancies on a windows machine. It is recommended to work on Linux. The server we will be training on runs Linux and all libraries plus code have been confirmed to work on Ubuntu's latest stable distribution.
 
 ---

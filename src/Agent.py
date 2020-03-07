@@ -44,13 +44,13 @@ class Agent():
     def reviewGames(self):
         self.prepareData()
         xTrain, xTest, yTrain, yTest = self.getTrainTestSplit()
-        trainNetwork(self, xTrain, xTest, yTrain, yTest)
+        self.trainNetwork(xTrain, xTest, yTrain, yTest)
 
     def prepareData(self):
         pass
 
     def getTrainTestSplit(self):
-        retturn [], [], [], []
+        return [None, None, None, None]
 
     def trainNetwork(self, xTrain, xTest, yTrain, yTest):
         pass
