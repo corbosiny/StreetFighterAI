@@ -2,6 +2,7 @@ import argparse, retro, threading, os
 
 class Agent():
 
+
     def getStates():
         files = os.listdir('../StreetFighterIISpecialChampionEdition-Genesis')
         states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
@@ -11,12 +12,13 @@ class Agent():
         self.game = game
         self.render = True
         self.stepHistory = []
-        self.initializeNetwork()
+        print(self.__class__.__name__)
+        if self.__class__.__name__ != "Agent": self.initializeNetwork()
 
     def train(self):
         for state in Agent.getStates():
             self.play(state= state)
-        self.reviewGames()
+        if self.__class__.__name__ != "Agent": self.reviewGames()
 
     def play(self, state= 'chunli'):
         self.fighter = state
@@ -39,7 +41,7 @@ class Agent():
         self.stepHistory.append([self.lastObservation, self.lastAction, self.lastReward, self.lastInfo, self.fighter])
 
     def initializeNetwork(self):
-        pass
+        raise NotImplementedError("Implement this is in the inherited agent")
 
     def reviewGames(self):
         self.prepareData()
@@ -47,13 +49,13 @@ class Agent():
         self.trainNetwork(xTrain, xTest, yTrain, yTest)
 
     def prepareData(self):
-        pass
+        raise NotImplementedError("Implement this is in the inherited agent")
 
     def getTrainTestSplit(self):
         return [None, None, None, None]
 
     def trainNetwork(self, xTrain, xTest, yTrain, yTest):
-        pass
+        raise NotImplementedError("Implement this is in the inherited agent")
 
     
 
