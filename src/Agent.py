@@ -12,7 +12,6 @@ class Agent():
         self.game = game
         self.render = True
         self.stepHistory = []
-        print(self.__class__.__name__)
         if self.__class__.__name__ != "Agent": self.initializeNetwork()
 
     def train(self):
