@@ -2,7 +2,6 @@ import argparse, retro, threading, os
 
 class Agent():
 
-
     def getStates():
         files = os.listdir('../StreetFighterIISpecialChampionEdition-Genesis')
         states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
@@ -14,10 +13,10 @@ class Agent():
         self.stepHistory = []
         if self.__class__.__name__ != "Agent": self.initializeNetwork()
 
-    def train(self):
+    def train(self, review= True):
         for state in Agent.getStates():
             self.play(state= state)
-        if self.__class__.__name__ != "Agent": self.reviewGames()
+        if self.__class__.__name__ != "Agent" and review == True: self.reviewGames()
 
     def play(self, state= 'chunli'):
         self.fighter = state
