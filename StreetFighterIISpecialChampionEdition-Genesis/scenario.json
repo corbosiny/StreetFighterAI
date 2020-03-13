@@ -4,6 +4,14 @@
       "continuetimer": {
         "op": "equal",
         "reference": 10
+      },
+      "enemy_matches_won": {
+        "op" : "equal",
+        "reference" : 2
+      },
+      "matches_won": {
+        "op" : "equal",
+        "reference" : 2
       }
     }
   },

@@ -9,30 +9,34 @@ class Agent():
 
     def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= True):
         self.game = game
-        self.render = True
+        self.render = render
         self.stepHistory = []
         if self.__class__.__name__ != "Agent": self.initializeNetwork()
 
-    def train(self, review= True):
+    def train(self, review= True, initialPopulation= False):
         for state in Agent.getStates():
-            self.play(state= state)
+            self.play(state= state, initialPopulation= initialPopulation)
         if self.__class__.__name__ != "Agent" and review == True: self.reviewGames()
 
-    def play(self, state= 'chunli'):
+    def play(self, state= 'chunli', initialPopulation= False):
         self.fighter = state
-        self.environment = retro.make(self.game, state)
-        self.lastObservation, self.stepHistory = self.environment.reset(), []
-        while True:
-            self.lastAction = self.getMove()
-            obs, self.lastReward, done, self.lastInfo = self.environment.step(self.lastAction)
+        self.initEnvironment(state)
+        while not self.done:
+            if initialPopulation: self.lastAction = self.getRandomMove()
+            else: self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
+
+            obs, self.lastReward, self.done, self.lastInfo = self.environment.step(self.lastAction)
             self.recordStep()
             self.lastObservation = obs
+
             if self.render: self.environment.render()
-            if done or self.lastInfo['matches_won'] == 2: break
 
         self.environment.close()
 
-    def getMove(self):
+    def getMove(self, obs, info):
+        return self.getRandomMove()
+
+    def getRandomMove(self):
         return self.environment.action_space.sample()
 
     def recordStep(self):
@@ -40,6 +44,15 @@ class Agent():
 
     def initializeNetwork(self):
         raise NotImplementedError("Implement this is in the inherited agent")
+
+    def initEnvironment(self, state):
+        self.environment = retro.make(self.game, state)
+        self.lastObservation = self.environment.reset() 
+        self.stepHistory, self.lastInfo = [], []
+        self.done = False
+
+    def initialPopulation(self):
+        self.train(initialPopulation= True)
 
     def reviewGames(self):
         self.prepareData()
@@ -55,10 +68,9 @@ class Agent():
     def trainNetwork(self, xTrain, xTest, yTrain, yTest):
         raise NotImplementedError("Implement this is in the inherited agent")
 
-    
-
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process agent parameterss.')
-    
-    randomAgent = Agent()
-    randomAgent.train()
+    parser = argparse.ArgumentParser(description='Processes agent parameters.')
+    parser.add_argument('-r', '--render', action= 'store_true', help= 'Boolean flag for if the user wants the game environment to render during play')
+    args = parser.parse_args()
+    randomAgent = Agent(render= args.render)
+    randomAgent.initialPopulation()
