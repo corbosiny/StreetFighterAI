@@ -133,3 +133,4 @@ F2 is the shortcut key that saves the current state of the game. The state is sa
 ---
 ## References:
 https://github.com/openai/retro/issues/33 (outdated but helpful)
+https://medium.com/aureliantactics/integrating-new-games-into-retro-gym-12b237d3ed75 (Very helpful for writing the json files)
