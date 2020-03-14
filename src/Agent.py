@@ -6,7 +6,7 @@ class Agent():
     """
 
     def getStates():
-        """Gets and returns a list of all the save state names that can be loaded
+        """Static method that gets and returns a list of all the save state names that can be loaded
 
         Parameters
         ----------
