@@ -5,18 +5,18 @@ This readme will take you through how to get this repo up and running with the e
 ---
 ## Installing Dependancies
 
-This code only works with Python 3.6 or later. Before trying to install dependancies it is recommend to open the terminal and run:  
+This code only works with Python 3.6 or later. Before trying to install dependencies it is recommend to open the terminal and run:  
 `sudo apt-get update`  
 `sudo apt-get upgrade`  
 `sudo -H pip3 install --upgrade pip`  
-To download the necessary dependancies after cloning the repo call:
+To download the necessary dependencies after cloning the repo call:
 `pip3 install -r requirements.txt`
 This should be called in the top level directory of the repo. This will install the following libraries you will need to create game environments that serve as a wrapper abstracting the interface between your agent and the underlying emulator: 
 
 **-gym**  
 **-gym-retro**   
 
-These libraries can sometimes have serious issues installing themselves or their dependancies on a windows machine. It is recommended to work on Linux. The server we will be training on runs Linux and all libraries plus code have been confirmed to work on Ubuntu's latest stable distribution.
+These libraries can sometimes have serious issues installing themselves or their dependencies on a windows machine. It is recommended to work on Linux. The server we will be training on runs Linux and all libraries plus code have been confirmed to work on Ubuntu's latest stable distribution.
 
 ---
 ## Preparing the Game Files 
@@ -46,7 +46,7 @@ To double check that the game files were properly set up the example agent can b
 
 `python3 Agent.py`
 
-Or you can open Agent.py and excute it from your prefered IDE of choice. This is an Agent that essentially button mashes. It does a random move every frame update despite what is going on in the game. If everything was installed correctly it should simply one by one open up each save state in the game directory and run through the fight set up for it. This will involve a small window popping up showing the game running at a very high speed. Once the fight is over a new window should open up with the next fight. Once all fights are over the program should kill itself and close all windows. 
+Or you can open Agent.py and execute it from your preferred IDE of choice. This is an Agent that essentially button mashes. It does a random move every frame update despite what is going on in the game. If everything was installed correctly it should simply one by one open up each save state in the game directory and run through the fight set up for it. This will involve a small window popping up showing the game running at a very high speed. Once the fight is over a new window should open up with the next fight. Once all fights are over the program should kill itself and close all windows. 
 
 ---
 ## How to make an agent
@@ -109,7 +109,7 @@ The reward functione specifies what variables make up the reward function and wh
 
 #### Done
 
-Done is a flag that signifies whether the current environment has completed. Currently Done is set if the enemey or the agent get two round wins, which in game is what determines if a match is over. So once the match is over the agent moves onto the next save state.
+Done is a flag that signifies whether the current environment has completed. Currently Done is set if the enemy or the agent get two round wins, which in game is what determines if a match is over. So once the match is over the agent moves onto the next save state.
 
 ---
 ## Generating New Save States
@@ -128,7 +128,7 @@ Retroarch needs a core of the architecture it is trying to simulate. The Street 
 
 ### Saving states
 
-F2 is the shortcut key that saves the current state of the game. The state is saved to the currently selected game state slot. This starts at slot zero and can be incremented with the F6 key and decremented with the F7 key. When a fight is about to start that you want to create a state for hit F2. Then I would recommend incrementing the save slot by pressing F6 so that if you try to save another state you don't accidentally overwrite the last state you saved. There are 8 slots in total. By pressing F5 and going to view->settings-Directory you can control where the save states are stored. The states will be saved with the extension of 'state' plus the number of the save slot it was saved in. To prep these for usage cleave off the number at the end of each extension and rename each file to the name of the fighter that the agent will be going up against plus some other context information if necessary. Then move these ROMS into the game files inside of retro like when preparing the game files after the initial cloning of the repo. Once inside that repo each state should be zipped independently of one another. Once this happens the extension will now be .zip, remove this from the extension so that the extension still remains .state. The states are now ready to be loaded by the agent. Everytime you load up the emulator decrement all the way back to zero again. 
+F2 is the shortcut key that saves the current state of the game. The state is saved to the currently selected game state slot. This starts at slot zero and can be incremented with the F6 key and decremented with the F7 key. When a fight is about to start that you want to create a state for hit F2. Then I would recommend incrementing the save slot by pressing F6 so that if you try to save another state you don't accidentally overwrite the last state you saved. There are 8 slots in total. By pressing F5 and going to view->settings-Directory you can control where the save states are stored. The states will be saved with the extension of 'state' plus the number of the save slot it was saved in. To prep these for usage cleave off the number at the end of each extension and rename each file to the name of the fighter that the agent will be going up against plus some other context information if necessary. Then move these ROMS into the game files inside of retro like when preparing the game files after the initial cloning of the repo. Once inside that repo each state should be zipped independently of one another. Once this happens the extension will now be .zip, remove this from the extension so that the extension still remains .state. The states are now ready to be loaded by the agent. Every time you load up the emulator decrement all the way back to zero again. 
 
 ---
 ## References:
