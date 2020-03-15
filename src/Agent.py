@@ -104,7 +104,9 @@ class Agent():
 
     def recordStep(self):
         """Records the last observation, action, reward and info about the environment along with the fighter name for training purposes
-
+           Observation is a 2D array of all the pixels and their RGB color values of the current frame. Action is the multivariable array
+           signifying the current button inputs. Reward is the reward value resultant of that action. And info is a list of predefined
+           variables in ROM specified in data.json.
         Parameters
         ----------
         None
@@ -182,7 +184,9 @@ class Agent():
         raise NotImplementedError("Implement this is in the inherited agent")
 
     def prepareData(self):
-        """To be implemented in child class, prepares the data in anyway needed for training, can just be pass if unecessary"""
+        """To be implemented in child class, prepares the data stored in self.stepHistory in anyway needed for training, can just be pass if unecessary
+            The data is stored in self.recordStep and the formatting can be seen there.
+        """
         raise NotImplementedError("Implement this is in the inherited agent")
 
     def getTrainTestSplit(self):
