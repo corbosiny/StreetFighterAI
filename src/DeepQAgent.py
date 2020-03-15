@@ -30,7 +30,7 @@ class DeepQAgent(Agent):
 
     def prepareData(self):
         """To be implemented in child class, prepares the data stored in self.stepHistory in anyway needed for training, can just be pass if unecessary
-            The data is stored in self.recordStep and the formatting can be seen there.
+            The data is stored in self.recordStep in the parent class and the formatting can be seen there.
         """
         raise NotImplementedError("Implement this is in the inherited agent")
 
