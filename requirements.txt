@@ -1,3 +1,2 @@
 gym==0.17.1
 gym_retro==0.7.0
-retro==2.8.0

@@ -15,7 +15,6 @@ This should be called in the top level directory of the repo. This will install 
 
 **-gym**  
 **-gym-retro**   
-**-retro**  
 
 These libraries can sometimes have serious issues installing themselves or their dependancies on a windows machine. It is recommended to work on Linux. The server we will be training on runs Linux and all libraries plus code have been confirmed to work on Ubuntu's latest stable distribution.
 
@@ -28,14 +27,15 @@ After the dependancies have been installed the necessary game files, all zipped 
 `import retro`  
 `print(retro.__file__)`    
 
-That should return the path to where the retro __init__.py script is stored. One level up from that should be the data folder. Inside there should be the stable folder. Copy the **StreetFighterIISpecialChampionEdition-Genesis.zip** here. There is already an existing folder here of the same name but we are going to overwrite that so tell your computer to replace the existing files when the prompt comes up. Inside the folder should be the following files:
+That should return the path to where the retro __init__.py script is stored. One level up from that should be the data folder. Inside there should be the stable folder. Copy the **StreetFighterIISpecialChampionEdition-Genesis** folder that is in the top level of the repo here. Inside the folder should be the following files:
 
 -rom.md    
 -rom.sha    
 -scenario.json  
 -data.json  
 -metadata.json  
--Several .state files with each having the name of a specifc fighter from the game  
+-reward_script.lua
+-Several .state files with each having the name of a specific fighter from the game  
 
 With that the game files should be correctly set up and you should be able to run a test agent. 
 
