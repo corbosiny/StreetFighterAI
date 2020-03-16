@@ -11,7 +11,7 @@ This code only works with Python 3.6 or later. Before trying to install dependen
 `sudo -H pip3 install --upgrade pip`  
 To download the necessary dependencies after cloning the repo call:
 `pip3 install -r requirements.txt`
-This should be called in the top level directory of the repo. This will install the following libraries you will need to create game environments that serve as a wrapper abstracting the interface between your agent and the underlying emulator: 
+This should be called in the top level directory of the repo. This will install the following libraries you will need to create game environments that serve as a wrapper abstracting the interface between your agent and the underlying emulator:
 
 **-gym**  
 **-gym-retro**   
@@ -21,7 +21,7 @@ These libraries can sometimes have serious issues installing themselves or their
 ---
 ## Preparing the Game Files 
 
-After the dependancies have been installed the necessary game files, all zipped inside of the **StreetFighterIISpecialChampionEdition-Genesis** directory, can be setup. The game files need to be copied into the actual game data files inside the installation of the retro library on your local machine. This location can be found by running the following lines in the command line:  
+After the dependencies have been installed the necessary game files, all zipped inside of the **StreetFighterIISpecialChampionEdition-Genesis** directory, can be setup. The game files need to be copied into the actual game data files inside the installation of the retro library on your local machine. This location can be found by running the following lines in the command line:  
 
 `python3`  
 `import retro`  

@@ -175,7 +175,7 @@ class Agent():
         Returns
         -------
         move
-            A set of button inputs in a multivariate array
+            A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
         return self.getRandomMove()
 

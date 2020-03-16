@@ -20,7 +20,7 @@ class DeepQAgent(Agent):
         Returns
         -------
         move
-            A set of button inputs in a multivariate array
+            A set of button inputs in a multivariate array of the format Up, Down, Left, Right, A, B, X, Y, L, R.
         """
         return self.getRandomMove()
 

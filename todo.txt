@@ -1,0 +1,22 @@
+To do list:
+
+- Get the data.json file with these variables added:
+	- x and Y coordinates of players
+	- mode IDs
+	- player crouching boolean
+	- player jumping boolean
+	- game clock
+
+- Decide on neural network library
+	- keras, tensorflow pytorch
+
+- Figure out network structure
+	- layers
+	- size
+
+- Implement Deep Q
+
+
+- Get save states
+
+- Start initial training run
