@@ -57,7 +57,6 @@ class Agent():
         None
         """
         for state in Agent.getStates():
-            print(state)
             self.play(state= state, initialPopulation= initialPopulation)
         if self.__class__.__name__ != "Agent" and review == True: self.reviewGames()
 
