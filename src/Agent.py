@@ -78,15 +78,13 @@ class Agent():
         self.fighter = state
         self.initEnvironment(state)
         while not self.done:
+            if self.render: self.environment.render()
+
             if initialPopulation: self.lastAction = self.getRandomMove()
             else: self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
             obs, self.lastReward, self.done, self.lastInfo = self.environment.step(self.lastAction)
-            print(self.lastInfo)
-            input(">>")
             self.recordStep()
             self.lastObservation = obs
-
-            if self.render: self.environment.render()
 
         self.environment.close()
 
