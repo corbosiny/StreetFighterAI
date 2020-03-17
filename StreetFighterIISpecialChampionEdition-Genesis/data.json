@@ -4,21 +4,17 @@
             "address": 16744917,
             "type": "|u1"
         },
-        "round_timer": {
-            "address": 16750378,
-            "type": "|u1"
-        },
         "enemy_health": {
             "address": 16745154,
             "type": ">i2"
         },
         "enemy_x_position": {
             "address": 16745094,
-            "type": "|u2"
+            "type": ">u2"
         },
         "enemy_y_position": {
             "address": 16745098,
-            "type": "|u2"
+            "type": ">u2"
         },
         "enemy_matches_won": {
             "address": 16745559,
@@ -38,11 +34,11 @@
         },
         "x_position": {
             "address": 16744454,
-            "type": "|u2"
+            "type": ">u2"
         },
         "y_position": {
             "address": 16744458,
-            "type": "|u2"
+            "type": ">u2"
         },
         "status": {
             "address": 16744450,
