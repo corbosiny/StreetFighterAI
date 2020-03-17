@@ -80,8 +80,9 @@ class Agent():
         while not self.done:
             if initialPopulation: self.lastAction = self.getRandomMove()
             else: self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
-
             obs, self.lastReward, self.done, self.lastInfo = self.environment.step(self.lastAction)
+            print(self.lastInfo)
+            input(">>")
             self.recordStep()
             self.lastObservation = obs
 
