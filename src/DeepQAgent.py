@@ -24,8 +24,8 @@ class DeepQAgent(Agent):
         -------
         None
         """
-        self.gamma = 0.95    # discount rate
-        self.epsilon = 1.0  # exploration rate
+        self.gamma = 0.95                               # discount rate
+        self.epsilon = 1.0                              # exploration rate
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
@@ -54,8 +54,7 @@ class DeepQAgent(Agent):
         return move
 
     def initializeNetwork(self):
-        """To be implemented in child class, should initialize or load in the Agent's neural network"""
-        # Neural Net for Deep-Q learning Model
+        """Neural Net for Deep-Q learning Model"""
         self.model = Sequential()
         self.model.add(Dense(24, input_dim= self.state_size, activation='relu'))
         self.model.add(Dense(24, activation='relu'))
