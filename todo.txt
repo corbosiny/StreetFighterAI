@@ -1,6 +1,54 @@
 To do list:
 
-- Implement Deep Q
+- Prepare data:
+    Convert state info into a feature vector ready to be fed into the neural network
 
+    Inputs:
+        step - a python dictionary containing the following fields:
+            continue timer
+            round_timer - large integer value can be converted to time left via multiplying by 258.57 and adding 12094.142 then round
+            score - integer of the current player score
+            
+            enemy_health - integer from 1 to 176
+            enemy_x_position - integer from 55 to 430
+            enemy_y_position - integer from 192 to 130
+            enemy_matches_won - integer from 0 to 2
+            enemy_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
+            enemy_character - integer from 0 to 9 where the number maps to the characters like this:
+                              00 Ryu
+                              01 Honda
+                              02 Blanka
+                              03 Guile
+                              04 Ken
+                              05 Chun li
+                              06 Zangief
+                              07 Dhalism
+         
+           
+            # All of these are the same ranges and types as the enemy variables
+            health
+            x_position
+            y_position
+            status
+            matches_won
+            
+    Mapping:
+        continue timer -> do not put continue timer in feature vector
+        round_timer -> map to time left in game as described above
+        score -> do not put score in feature vector
+        
+        enemy_health -> put directly in feature vector
+        enemy_x_position -> put directly in feature vector
+        enemy_y_position -> put directly in feature vector
+        enemy_matches_won -> do not put in feature vector
+        enemy_status -> map to one hot encoding of the 8 different states
+        enemy_character -> map to one hot encoding of the 8 different characters
+        
+        # Do the same for all player values as the enemy values, do not put in a player character feature though as that is constants
+    
+    Output: 
+        1D array of all the features in one single vector that is ready to feed to the networks
+        
+- Implement Deep Q
 
 - Start initial training run

@@ -10,7 +10,7 @@ class DeepQAgent(Agent):
     """ An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn.
     """
 
-    def __init__(self, state_size= 14, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
+    def __init__(self, state_size= 31, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -58,9 +58,8 @@ class DeepQAgent(Agent):
         move
             A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
-        # stateData = self.prepareData(info)
-        info = list(info.values())
-        move = self.model.predict(numpy.reshape(info, [1, self.state_size]))[0]
+        stateData = self.prepareData(info)
+        move = self.model.predict(stateData)
         move = [1 if value > 0 else 0 for value in move]
         return move
 
