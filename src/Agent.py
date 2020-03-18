@@ -1,4 +1,7 @@
-import argparse, retro, threading, os
+import argparse, retro, threading, os, numpy
+from collections import deque
+
+MAX_DATA_LENGTH = 20000
 
 class Agent():
     """ Abstract class that user created Agents should inherit from.
@@ -21,7 +24,7 @@ class Agent():
         states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
         return states
 
-    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
+    def __init__(self, state_size= 14, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -36,12 +39,14 @@ class Agent():
         -------
         None
         """
+        self.state_size = state_size
+        self.action_size = action_size
         self.game = game
         self.render = render
-        self.stepHistory = []
+        self.memory = deque(maxlen= MAX_DATA_LENGTH)
         if self.__class__.__name__ != "Agent": self.initializeNetwork()
 
-    def train(self, review= True, initialPopulation= False):
+    def train(self, review= True):
         """Causes the Agent to run through each save state fight and record the results to review after
 
         Parameters
@@ -57,10 +62,12 @@ class Agent():
         None
         """
         for state in Agent.getStates():
-            self.play(state= state, initialPopulation= initialPopulation)
+            self.play(state= state)
+            print(self.memory.popleft())
+            input()
         if self.__class__.__name__ != "Agent" and review == True: self.reviewGames()
 
-    def play(self, state= 'chunli', initialPopulation= False):
+    def play(self, state= 'chunli'):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
 
         Parameters
@@ -79,12 +86,13 @@ class Agent():
         self.initEnvironment(state)
         while not self.done:
             if self.render: self.environment.render()
+            
+            self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
+            obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
+            info = numpy.reshape(list(info.values()), [1, self.state_size])
 
-            if initialPopulation: self.lastAction = self.getRandomMove()
-            else: self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
-            obs, self.lastReward, self.done, self.lastInfo = self.environment.step(self.lastAction)
-            self.recordStep()
-            self.lastObservation = obs
+            self.recordStep(self.lastInfo, self.lastAction, self.lastReward, info, self.done)
+            self.lastObservation, self.lastInfo = [obs, info]
 
         self.environment.close()
 
@@ -101,7 +109,7 @@ class Agent():
         """
         return self.environment.action_space.sample()
 
-    def recordStep(self):
+    def recordStep(self, state, action, reward, nextState, done):
         """Records the last observation, action, reward and info about the environment along with the fighter name for training purposes
            Observation is a 2D array of all the pixels and their RGB color values of the current frame. Action is the multivariable array
            signifying the current button inputs. Reward is the reward value resultant of that action. And info is a list of predefined
@@ -114,7 +122,7 @@ class Agent():
         -------
         None
         """
-        self.stepHistory.append([self.lastObservation, self.lastAction, self.lastReward, self.lastInfo, self.fighter])
+        self.memory.append((state, action, reward, nextState, done))
 
     def initEnvironment(self, state):
         """Initializes a game environment that the Agent can play in
@@ -129,22 +137,11 @@ class Agent():
         None
         """
         self.environment = retro.make(self.game, state)
-        self.lastObservation = self.environment.reset() 
-        self.stepHistory, self.lastInfo = [], []
+        self.environment.reset() 
+        self.lastObservation, _, _, self.lastInfo = self.environment.step(numpy.zeros(self.action_size))
+        self.lastInfo = numpy.reshape(list(self.lastInfo.values()), [1, self.state_size])
+        self.memory = deque(maxlen= MAX_DATA_LENGTH)
         self.done = False
-
-    def initialPopulation(self):
-        """Initializes an intial dataset of the Agent playing randomly to train on and begins the first epoch of training
-        Parameters
-        ----------
-        state
-            The name of the save state to load into the environment
-
-        Returns
-        -------
-        None
-        """
-        self.train(initialPopulation= True)
 
     def reviewGames(self):
         """Prepares the data and then runs through a training epoch reviewing each fight frame by frame
@@ -156,9 +153,8 @@ class Agent():
         -------
         None
         """
-        self.prepareData()
-        xTrain, xTest, yTrain, yTest = self.getTrainTestSplit()
-        self.trainNetwork(xTrain, xTest, yTrain, yTest)
+        self.data = [self.prepareData(step) for step in self.memory]
+        self.trainNetwork()
 
     def getMove(self, obs, info):
         """Returns a set of button inputs generated by the Agent's network after looking at the current observation
@@ -182,29 +178,17 @@ class Agent():
         """To be implemented in child class, should initialize or load in the Agent's neural network"""
         raise NotImplementedError("Implement this is in the inherited agent")
 
-    def prepareData(self):
-        """To be implemented in child class, prepares the data stored in self.stepHistory in anyway needed for training, can just be pass if unecessary
+    def prepareData(self, step):
+        """To be implemented in child class, prepares the data stored in self.memory in anyway needed for training, can just be pass if unecessary
             The data is stored in self.recordStep and the formatting can be seen there.
         """
         raise NotImplementedError("Implement this is in the inherited agent")
 
-    def getTrainTestSplit(self):
-        """Splits the data into a train and test set
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-            train_x, test_x, train_y, test_y which are all arrays of training points
-        """
-        raise NotImplementedError("Implement this is in the inherited agent")
-
-    def trainNetwork(self, xTrain, xTest, yTrain, yTest):
+    def trainNetwork(self):
         """To be implemented in child class, Runs through a training epoch reviewing the training data
         Parameters
         ----------
-            train_x, test_x, train_y, test_y which are all areas of training points
+        None
 
         Returns
         -------
