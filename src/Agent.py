@@ -24,7 +24,7 @@ class Agent():
         states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
         return states
 
-    def __init__(self, state_size= 14, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
+    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -39,12 +39,10 @@ class Agent():
         -------
         None
         """
-        self.state_size = state_size
-        self.action_size = action_size
         self.game = game
         self.render = render
-        self.memory = deque(maxlen= MAX_DATA_LENGTH)
-        if self.__class__.__name__ != "Agent": self.initializeNetwork()
+        self.memory = deque(maxlen= MAX_DATA_LENGTH)                                    # Double ended queue that stores states during the game
+        if self.__class__.__name__ != "Agent": self.initializeNetwork()                 # Only invoked in child subclasses, Agent has no network
 
     def train(self, review= True):
         """Causes the Agent to run through each save state fight and record the results to review after
@@ -54,18 +52,13 @@ class Agent():
         review
             A boolean variable that tells the Agent whether or not it should train after running through all the save states, true means train
 
-        initialPopulation
-            A boolean that lets the Agent know if it is generating the initial dataset to train on. If true it will make random moves just to generate an initial dataset
-
         Returns
         -------
         None
         """
         for state in Agent.getStates():
             self.play(state= state)
-            print(self.memory.popleft())
-            input()
-        if self.__class__.__name__ != "Agent" and review == True: self.reviewGames()
+        if self.__class__.__name__ != "Agent" and review == True: self.reviewGames()    # Only invoked in child subclasses, Agent does not learn
 
     def play(self, state= 'chunli'):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
@@ -75,24 +68,19 @@ class Agent():
         state
             A string of the name of the save state the Agent will be playing
 
-        initialPopulation
-            A boolean that lets the Agent know if it is generating the initial dataset to train on. If true it will make random moves just to generate an initial dataset
-
         Returns
         -------
         None
         """
-        self.fighter = state
         self.initEnvironment(state)
         while not self.done:
             if self.render: self.environment.render()
             
             self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
             obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
-            info = numpy.reshape(list(info.values()), [1, self.state_size])
 
             self.recordStep(self.lastInfo, self.lastAction, self.lastReward, info, self.done)
-            self.lastObservation, self.lastInfo = [obs, info]
+            self.lastObservation, self.lastInfo = [obs, info]                          # Overwrite after recording step so Agent remembers the previous state that led to this one
 
         self.environment.close()
 
@@ -105,15 +93,17 @@ class Agent():
 
         Returns
         -------
-        None
+            move a binary array of random button press combinations within the environments action space
         """
-        return self.environment.action_space.sample()
+        move = self.environment.action_space.sample()                                  # Take random sample of all the button press inputs the Agent could make
+        return move                                
 
     def recordStep(self, state, action, reward, nextState, done):
-        """Records the last observation, action, reward and info about the environment along with the fighter name for training purposes
-           Observation is a 2D array of all the pixels and their RGB color values of the current frame. Action is the multivariable array
-           signifying the current button inputs. Reward is the reward value resultant of that action. And info is a list of predefined
-           variables in ROM specified in data.json.
+        """Records the last observation, action, reward and the resultant observation about the environment
+           The states are a dict of predefined variables in RAM specified in data.json that describe the game.
+           State is the previous game state before the action while nextState is the game state after the action. 
+           Action is the multivariable array signifying the current button inputs, 1 means pressed and 0 is not.
+           Reward is the resultant reward measured based on the success of the last action taken by the Agent.
         Parameters
         ----------
         None
@@ -122,10 +112,10 @@ class Agent():
         -------
         None
         """
-        self.memory.append((state, action, reward, nextState, done))
+        self.memory.append((state, action, reward, nextState, done))                    # Steps are stored as tuples to avoid unintended changes
 
     def initEnvironment(self, state):
-        """Initializes a game environment that the Agent can play in
+        """Initializes a game environment that the Agent can play a save state in
 
         Parameters
         ----------
@@ -138,8 +128,8 @@ class Agent():
         """
         self.environment = retro.make(self.game, state)
         self.environment.reset() 
-        self.lastObservation, _, _, self.lastInfo = self.environment.step(numpy.zeros(self.action_size))
-        self.lastInfo = numpy.reshape(list(self.lastInfo.values()), [1, self.state_size])
+        firstAction = numpy.zeros(len(self.environment.action_space.sample()))         # The first action is always nothing in order for the Agent to get it's first set of infos before acting
+        self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction) # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
         self.memory = deque(maxlen= MAX_DATA_LENGTH)
         self.done = False
 
@@ -165,7 +155,8 @@ class Agent():
             The observation of the current environment, 2D numpy array of pixel values
 
         info
-            An array of information about the current environment, like player health, enemy health, matches won, and matches lost
+            An array of information about the current environment, like player health, enemy health, matches won, and matches lost, etc.
+            A full list of info can be found in data.json
 
         Returns
         -------
@@ -181,6 +172,16 @@ class Agent():
     def prepareData(self, step):
         """To be implemented in child class, prepares the data stored in self.memory in anyway needed for training, can just be pass if unecessary
             The data is stored in self.recordStep and the formatting can be seen there.
+        
+        Parameters
+        ----------
+        steps
+            A given state, action, post state sequence with reward from the practice games
+            
+        Returns
+        -------
+        data
+            A feature vector extracted from the step that is the same size as the network input layer
         """
         raise NotImplementedError("Implement this is in the inherited agent")
 
