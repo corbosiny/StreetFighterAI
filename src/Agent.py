@@ -51,7 +51,7 @@ class Agent():
         self.memory = deque(maxlen= MAX_DATA_LENGTH)                                    # Double ended queue that stores states during the game
         if self.__class__.__name__ != "Agent": self.initializeNetwork()                 # Only invoked in child subclasses, Agent has no network
 
-    def train(self, review= True):
+    def train(self, review= True, episodes= 1):
         """Causes the Agent to run through each save state fight and record the results to review after
 
         Parameters
@@ -63,10 +63,11 @@ class Agent():
         -------
         None
         """
-        self.memory = deque(maxlen= MAX_DATA_LENGTH)
-        for state in Agent.getStates():
-            self.play(state= state)
-        if self.__class__.__name__ != "Agent" and review == True: self.trainNetwork()   # Only invoked in child subclasses, Agent does not learn
+        for _ in range(episodes):
+            self.memory = deque(maxlen= MAX_DATA_LENGTH)
+            for state in Agent.getStates():
+                self.play(state= state)
+            if self.__class__.__name__ != "Agent" and review == True: self.trainNetwork()   # Only invoked in child subclasses, Agent does not learn
 
     def play(self, state= 'chunli'):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
