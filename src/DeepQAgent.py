@@ -100,6 +100,40 @@ class DeepQAgent(Agent):
 
             See todo.txt for the mapping information
         """
+        data = []
+        data.append(step.round_timer)
+
+        # Enemy Data
+        data.append(step.enemy_health)
+        data.append(step.enemy_x)
+        data.append(step.enemy_y)
+
+        # one hot encode enemy state
+        # enemy_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
+        enemyStatusVal = (step.enemy_status - 512) / 2
+        oneHotEnemyState = [0] * 8;
+        oneHotEnemyState[enemyStatusVal] = 1
+        data.append(oneHotEnemyState)
+
+        # one hot encode enemy character
+        oneHotEnemyChar = [0] * 8
+        oneHotEnemyChar[step.enemy_character] = 1
+        data.append(oneHotEnemyChar)
+
+        # Player Data
+        data.append(step.player_health)
+        data.append(step.player_x)
+        data.append(step.player_y)
+
+        # player_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
+        playerStatusVal = (step.player_status - 512) / 2
+        oneHotPlayerState = [0] * 8
+        oneHotPlayerState[playerStatusVal] = 1
+        data.append(oneHotPlayerState)
+
+        return data
+        
+
         raise NotImplementedError("Implement this is in the inherited agent")
 
     def trainNetwork(self):
