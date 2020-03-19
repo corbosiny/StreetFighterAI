@@ -5,23 +5,14 @@ from tensorflow.python import keras
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
-
+stepInput = False
 class DeepQAgent(Agent):
     """ An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn.
     """
 
-    def error_handling_decorator(func):
-        def wrapper(*args):
-            try:
-                func()
-            except:
-                return numpy.reshape([0] * args[0].state_size, [1, args[0].state_size])
+    stateIndicies = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8}  # Mapping between player state values and their one hot encoding index
 
-        return wrapper
-
-    stateIndicies = {512 : 0, 514 : 1, 516 : 2, 520 : 3, 522 : 4, 524 : 5, 526 : 6, 532 : 7}  # Mapping between player state values and their one hot encoding index
-
-    def __init__(self, state_size= 30, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
+    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -92,7 +83,6 @@ class DeepQAgent(Agent):
         self.model.add(Dense(self.action_size, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
-    @error_handling_decorator
     def prepareNetworkInputs(self, step):
         """Generates a feature vector from thhe current game state information to feed into the network
         
@@ -110,8 +100,9 @@ class DeepQAgent(Agent):
             8 one hot encoded enemy character elements, player_health, player_x, player_y, and finally
             8 one hot encoded player state elements.
         """
+        global stepInput
         feature_vector = []
-
+        
         # Enemy Data
         feature_vector.append(step["enemy_health"])
         feature_vector.append(step["enemy_x_position"])
@@ -119,8 +110,8 @@ class DeepQAgent(Agent):
 
         # one hot encode enemy state
         # enemy_status - 512 if standing, 514 if crouching, 516 if jumping, 518 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
-        oneHotEnemyState = [0] * 8
-        oneHotEnemyState[DeepQAgent.stateIndicies[step["enemy_status"]]] = 1
+        oneHotEnemyState = [0] * len(DeepQAgent.stateIndicies.keys())
+        if step['enemy_status'] not in [0, 528, 530]: oneHotEnemyState[DeepQAgent.stateIndicies[step["enemy_status"]]] = 1
         feature_vector += oneHotEnemyState
 
         # one hot encode enemy character
@@ -134,9 +125,10 @@ class DeepQAgent(Agent):
         feature_vector.append(step["y_position"])
 
         # player_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
-        oneHotPlayerState = [0] * 8
-        oneHotPlayerState[DeepQAgent.stateIndicies[step["status"]]] = 1
+        oneHotPlayerState = [0] * len(DeepQAgent.stateIndicies.keys())
+        if step['status'] not in [0, 528, 530]: oneHotPlayerState[DeepQAgent.stateIndicies[step["status"]]] = 1
         feature_vector += oneHotPlayerState
+
         feature_vector = numpy.reshape(feature_vector, [1, self.state_size])
         return feature_vector
 

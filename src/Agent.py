@@ -15,6 +15,8 @@ class Agent():
     NEXT_STATE_INDEX = 3
     DONE_INDEX = 4
 
+    doneKeys = [1024, 1026, 1028]
+
     def getStates():
         """Static method that gets and returns a list of all the save state names that can be loaded
 
@@ -121,7 +123,10 @@ class Agent():
         -------
         None
         """
-        self.memory.append((self.prepareNetworkInputs(state), action, reward, self.prepareNetworkInputs(nextState), done))                    # Steps are stored as tuples to avoid unintended changes
+        if nextState['status'] in Agent.doneKeys or nextState['enemy_status'] in Agent.doneKeys: 
+            return
+        else:
+            self.memory.append((self.prepareNetworkInputs(state), action, reward, self.prepareNetworkInputs(nextState), done))                    # Steps are stored as tuples to avoid unintended changes
 
     def initEnvironment(self, state):
         """Initializes a game environment that the Agent can play a save state in
@@ -139,7 +144,6 @@ class Agent():
         self.environment.reset() 
         firstAction = numpy.zeros(len(self.environment.action_space.sample()))         # The first action is always nothing in order for the Agent to get it's first set of infos before acting
         self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction) # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
-        # self.memory = deque(maxlen= MAX_DATA_LENGTH)
         self.done = False
 
     def getMove(self, obs, info):
