@@ -10,7 +10,18 @@ class DeepQAgent(Agent):
     """ An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn.
     """
 
-    def __init__(self, state_size= 31, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
+    def error_handling_decorator(func):
+        def wrapper(*args):
+            try:
+                func()
+            except:
+                return numpy.reshape([0] * args[0].state_size, [1, args[0].state_size])
+
+        return wrapper
+
+    stateIndicies = {512 : 0, 514 : 1, 516 : 2, 520 : 3, 522 : 4, 524 : 5, 526 : 6, 532 : 7}  # Mapping between player state values and their one hot encoding index
+
+    def __init__(self, state_size= 30, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -58,9 +69,10 @@ class DeepQAgent(Agent):
         move
             A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
-        stateData = self.prepareData(info)
-        move = self.model.predict(stateData)
-        move = [1 if value > 0 else 0 for value in move]
+        if info['status'] not in DeepQAgent.stateIndicies.keys() or info['enemy_status'] not in DeepQAgent.stateIndicies.keys(): return [0] * self.action_size 
+        feature_vector = self.prepareNetworkInputs(info)
+        move = self.model.predict(feature_vector)
+        move = [1 if value > 0 else 0 for value in move[0]]
         return move
 
     def initializeNetwork(self):
@@ -80,61 +92,53 @@ class DeepQAgent(Agent):
         self.model.add(Dense(self.action_size, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
-    def prepareData(self, step):
-        """Prepares the data stored in self.memory and transforms it into a feature vector.
-           The data is stored in the format shown in self.recordStep.
+    @error_handling_decorator
+    def prepareNetworkInputs(self, step):
+        """Generates a feature vector from thhe current game state information to feed into the network
         
         Parameters
         ----------
-        steps
-            A given state, action, post state sequence with reward from the practice games
+        step
+            A given set of state information from the environment
             
         Returns
         -------
-        data
-            A feature vector extracted from the step that is the same size as the network input layer
-            Takes the form of a 1 x 31 array. With the elements:
-            roundtimer, enemy_health, enemy_x, enemy_y, 8 one hot encoded enemy state elements, 
+        feature vector
+            An array extracted from the step that is the same size as the network input layer
+            Takes the form of a 1 x 30 array. With the elements:
+            enemy_health, enemy_x, enemy_y, 8 one hot encoded enemy state elements, 
             8 one hot encoded enemy character elements, player_health, player_x, player_y, and finally
             8 one hot encoded player state elements.
-
-            See todo.txt for the mapping information
         """
-        data = []
-        data.append(step.round_timer)
+        feature_vector = []
 
         # Enemy Data
-        data.append(step.enemy_health)
-        data.append(step.enemy_x)
-        data.append(step.enemy_y)
+        feature_vector.append(step["enemy_health"])
+        feature_vector.append(step["enemy_x_position"])
+        feature_vector.append(step["enemy_y_position"])
 
         # one hot encode enemy state
-        # enemy_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
-        enemyStatusVal = (step.enemy_status - 512) / 2
-        oneHotEnemyState = [0] * 8;
-        oneHotEnemyState[enemyStatusVal] = 1
-        data.append(oneHotEnemyState)
+        # enemy_status - 512 if standing, 514 if crouching, 516 if jumping, 518 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
+        oneHotEnemyState = [0] * 8
+        oneHotEnemyState[DeepQAgent.stateIndicies[step["enemy_status"]]] = 1
+        feature_vector += oneHotEnemyState
 
         # one hot encode enemy character
         oneHotEnemyChar = [0] * 8
-        oneHotEnemyChar[step.enemy_character] = 1
-        data.append(oneHotEnemyChar)
+        oneHotEnemyChar[step["enemy_character"]] = 1
+        feature_vector += oneHotEnemyChar
 
         # Player Data
-        data.append(step.player_health)
-        data.append(step.player_x)
-        data.append(step.player_y)
+        feature_vector.append(step["health"])
+        feature_vector.append(step["x_position"])
+        feature_vector.append(step["y_position"])
 
         # player_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
-        playerStatusVal = (step.player_status - 512) / 2
         oneHotPlayerState = [0] * 8
-        oneHotPlayerState[playerStatusVal] = 1
-        data.append(oneHotPlayerState)
-
-        return data
-        
-
-        raise NotImplementedError("Implement this is in the inherited agent")
+        oneHotPlayerState[DeepQAgent.stateIndicies[step["status"]]] = 1
+        feature_vector += oneHotPlayerState
+        feature_vector = numpy.reshape(feature_vector, [1, self.state_size])
+        return feature_vector
 
     def trainNetwork(self):
         """To be implemented in child class, Runs through a training epoch reviewing the training data
@@ -175,7 +179,7 @@ class DeepQAgent(Agent):
         self.model.save_weights(name)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Processes agent parameters.')
+    parser = argparse.ArgumentParser(description= 'Processes agent parameters.')
     parser.add_argument('-r', '--render', action= 'store_true', help= 'Boolean flag for if the user wants the game environment to render during play')
     args = parser.parse_args()
     qAgent = DeepQAgent(render= args.render)

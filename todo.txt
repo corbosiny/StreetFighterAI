@@ -34,7 +34,7 @@ To do list:
             
     Mapping:
         continue timer -> do not put continue timer in feature vector
-        round_timer -> map to time left in game as described above
+        round_timer -> no longer put in feature vector
         score -> do not put score in feature vector
         
         enemy_health -> put directly in feature vector
