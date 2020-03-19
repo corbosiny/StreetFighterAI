@@ -63,6 +63,7 @@ class Agent():
         -------
         None
         """
+        self.memory = deque(maxlen= MAX_DATA_LENGTH)
         for state in Agent.getStates():
             self.play(state= state)
         if self.__class__.__name__ != "Agent" and review == True: self.trainNetwork()   # Only invoked in child subclasses, Agent does not learn
@@ -137,7 +138,7 @@ class Agent():
         self.environment.reset() 
         firstAction = numpy.zeros(len(self.environment.action_space.sample()))         # The first action is always nothing in order for the Agent to get it's first set of infos before acting
         self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction) # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
-        self.memory = deque(maxlen= MAX_DATA_LENGTH)
+        # self.memory = deque(maxlen= MAX_DATA_LENGTH)
         self.done = False
 
     def getMove(self, obs, info):
