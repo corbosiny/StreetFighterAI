@@ -76,7 +76,10 @@ class DeepQAgent(Agent):
         """
         self.model = Sequential()
         self.model.add(Dense(24, input_dim= self.state_size, activation='relu'))
-        self.model.add(Dense(24, activation='relu'))
+        #self.model.add(Dense(24, activation='relu'))
+        self.model.add(Dense(256, activation='relu'))
+        self.model.add(Dense(512, activation='relu'))
+        self.model.add(Dense(256, activation='relu'))
         self.model.add(Dense(self.action_size, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
@@ -93,7 +96,12 @@ class DeepQAgent(Agent):
         -------
         data
             A feature vector extracted from the step that is the same size as the network input layer
-            Takes the form: TODO 
+            Takes the form of a 1 x 31 array. With the elements:
+            roundtimer, enemy_health, enemy_x, enemy_y, 8 one hot encoded enemy state elements, 
+            8 one hot encoded enemy character elements, player_health, player_x, player_y, and finally
+            8 one hot encoded player state elements.
+
+            See todo.txt for the mapping information
         """
         raise NotImplementedError("Implement this is in the inherited agent")
 
