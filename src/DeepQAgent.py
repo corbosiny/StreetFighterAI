@@ -76,10 +76,7 @@ class DeepQAgent(Agent):
         """
         self.model = Sequential()
         self.model.add(Dense(24, input_dim= self.state_size, activation='relu'))
-        #self.model.add(Dense(24, activation='relu'))
-        self.model.add(Dense(256, activation='relu'))
-        self.model.add(Dense(512, activation='relu'))
-        self.model.add(Dense(256, activation='relu'))
+        self.model.add(Dense(24, activation='relu'))
         self.model.add(Dense(self.action_size, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
