@@ -1,5 +1,6 @@
 import argparse, retro, threading, os, numpy, random
 from Agent import Agent
+from LossHistory import LossHistory
 
 from tensorflow.python import keras
 from keras.models import Sequential
@@ -12,7 +13,13 @@ class DeepQAgent(Agent):
 
     stateIndicies = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8}  # Mapping between player state values and their one hot encoding index
 
-    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, epsilon= 1):
+    def getWeightsName():
+        return  self.__class__.__name__ + "Weights"
+
+    def getLogsName():
+        return self.__class__.name + "logs"
+
+    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= True, epsilon= 1):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -36,10 +43,14 @@ class DeepQAgent(Agent):
         self.state_size = state_size
         self.action_size = action_size
         self.gamma = 0.95                               # discount rate
-        self.epsilon = epsilon                              # exploration rate
+        self.epsilon = epsilon                          # exploration rate
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
+        self.lossHistory = LossHistory()
+
+        if load:
+            self.loadModel(os.path.join(Agent.DEFAULT_DIR_PATH, DeepQAgent.getWeightsName()))
 
         super(DeepQAgent, self).__init__(game= game, render= render) 
 
@@ -155,11 +166,13 @@ class DeepQAgent(Agent):
                 target = (reward + self.gamma * numpy.amax(self.model.predict(next_state)[0]))
             target_f = self.model.predict(state)
             target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
+            self.model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [history])
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+        
+        self.saveModel()
 
-    def load(self, name):
+    def loadModel(self, name):
         """Loads in pretrained model weights
         Parameters
         ----------
@@ -171,8 +184,9 @@ class DeepQAgent(Agent):
         None
         """
         self.model.load_weights(name)
+        self.epsilon = self.epsilon_min
 
-    def save(self, name):
+    def saveModel(self):
         """Saves the currently trained model weights
         Parameters
         ----------
@@ -183,16 +197,16 @@ class DeepQAgent(Agent):
         -------
         None
         """
-        self.model.save_weights(name)
+        self.model.save_weights(os.path.join(Agent.DEFAULT_WEIGHTS_DIR_PATH, DeepQAgent.getWeightsName()))
+        with open(os.path.join(Agent.DEFAULT_LOGS_DIR_PATH, DeepQAgent.getLogsName()), 'a+') as file:
+            file.write(self.history)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description= 'Processes agent parameters.')
     parser.add_argument('-r', '--render', action= 'store_true', help= 'Boolean flag for if the user wants the game environment to render during play')
     parser.add_argument('-l', '--load', action= 'store_true', help= 'Boolean flag for if the user wants to load pre-existing weights')
+    parser.add_argument('-e', '--episodes', type= int, default= 10, help= 'Intger representing the number of training rounds to go through, checkpoints are made at the end of each episode')
     args = parser.parse_args()
-    qAgent = DeepQAgent(render= args.render)
-    if args.load:
-        qAgent.epsilon = qAgent.epsilon_min
-        qAgent.load("../weights/StreetFighterWeights")
-    qAgent.train(review= True, episodes= 100)
-    qAgent.save("../weights/StreetFighterWeights")
+    qAgent = DeepQAgent(render= args.render, load= args.load)
+    qAgent.load(os.path.join(Agent.DEFAULT_DIR_PATH, DeepQAgent.getWeightsName()))
+    qAgent.train(review= True, episodes= args.episodes)

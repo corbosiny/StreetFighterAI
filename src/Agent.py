@@ -17,6 +17,9 @@ class Agent():
 
     doneKeys = [1024, 1026, 1028, 1032]
 
+    DEFAULT_DIR_PATH = '../weights'
+    DEFAULT_LOGS_DIR_PATH = '../logs'
+
     def getStates():
         """Static method that gets and returns a list of all the save state names that can be loaded
 
