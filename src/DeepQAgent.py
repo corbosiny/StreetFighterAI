@@ -6,7 +6,7 @@ from tensorflow.python import keras
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
-stepInput = False
+
 class DeepQAgent(Agent):
     """ An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn.
     """
@@ -117,7 +117,6 @@ class DeepQAgent(Agent):
             8 one hot encoded enemy character elements, player_health, player_x, player_y, and finally
             8 one hot encoded player state elements.
         """
-        global stepInput
         feature_vector = []
         
         # Enemy Data
