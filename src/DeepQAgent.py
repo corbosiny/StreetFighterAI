@@ -1,4 +1,4 @@
-import argparse, retro, threading, os, numpy
+import argparse, retro, threading, os, numpy, random
 from Agent import Agent
 
 from tensorflow.python import keras
@@ -12,7 +12,7 @@ class DeepQAgent(Agent):
 
     stateIndicies = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8}  # Mapping between player state values and their one hot encoding index
 
-    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
+    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, epsilon= 1):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -36,7 +36,7 @@ class DeepQAgent(Agent):
         self.state_size = state_size
         self.action_size = action_size
         self.gamma = 0.95                               # discount rate
-        self.epsilon = 1.0                              # exploration rate
+        self.epsilon = epsilon                              # exploration rate
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
@@ -61,9 +61,11 @@ class DeepQAgent(Agent):
             A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
         if info['status'] not in DeepQAgent.stateIndicies.keys() or info['enemy_status'] not in DeepQAgent.stateIndicies.keys(): return [0] * self.action_size 
-        feature_vector = self.prepareNetworkInputs(info)
-        move = self.model.predict(feature_vector)
-        move = [1 if value > 0 else 0 for value in move[0]]
+        if numpy.random.rand() <= self.epsilon:
+            return self.getRandomMove()
+        stateData = self.prepareNetworkInputs(info)
+        move = self.model.predict(stateData)[0]
+        move = [1 if value > 0 else 0 for value in move]
         return move
 
     def initializeNetwork(self):
@@ -79,6 +81,9 @@ class DeepQAgent(Agent):
         """
         self.model = Sequential()
         self.model.add(Dense(24, input_dim= self.state_size, activation='relu'))
+        self.model.add(Dense(48, activation='relu'))
+        self.model.add(Dense(96, activation='relu'))
+        self.model.add(Dense(48, activation='relu'))
         self.model.add(Dense(24, activation='relu'))
         self.model.add(Dense(self.action_size, activation='linear'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
@@ -111,7 +116,7 @@ class DeepQAgent(Agent):
         # one hot encode enemy state
         # enemy_status - 512 if standing, 514 if crouching, 516 if jumping, 518 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
         oneHotEnemyState = [0] * len(DeepQAgent.stateIndicies.keys())
-        if step['enemy_status'] not in [0, 528, 530]: oneHotEnemyState[DeepQAgent.stateIndicies[step["enemy_status"]]] = 1
+        if step['enemy_status'] not in [0, 528, 530, 1024, 1026, 1028, 1030, 1032]: oneHotEnemyState[DeepQAgent.stateIndicies[step["enemy_status"]]] = 1
         feature_vector += oneHotEnemyState
 
         # one hot encode enemy character
@@ -126,7 +131,7 @@ class DeepQAgent(Agent):
 
         # player_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
         oneHotPlayerState = [0] * len(DeepQAgent.stateIndicies.keys())
-        if step['status'] not in [0, 528, 530]: oneHotPlayerState[DeepQAgent.stateIndicies[step["status"]]] = 1
+        if step['status'] not in [0, 528, 530, 1024, 1026, 1028, 1030, 1032]: oneHotPlayerState[DeepQAgent.stateIndicies[step["status"]]] = 1
         feature_vector += oneHotPlayerState
 
         feature_vector = numpy.reshape(feature_vector, [1, self.state_size])
@@ -142,7 +147,16 @@ class DeepQAgent(Agent):
         -------
         None
         """
-        raise NotImplementedError("Implement this is in the inherited agent")
+        minibatch = random.sample(self.memory, 5000)
+        for state, action, reward, next_state, done in minibatch:
+            target = reward
+            if not done:
+                target = (reward + self.gamma * numpy.amax(self.model.predict(next_state)[0]))
+            target_f = self.model.predict(state)
+            target_f[0][action] = target
+            self.model.fit(state, target_f, epochs=1, verbose=0)
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
     def load(self, name):
         """Loads in pretrained model weights
@@ -173,6 +187,11 @@ class DeepQAgent(Agent):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description= 'Processes agent parameters.')
     parser.add_argument('-r', '--render', action= 'store_true', help= 'Boolean flag for if the user wants the game environment to render during play')
+    parser.add_argument('-l', '--load', action= 'store_true', help= 'Boolean flag for if the user wants to load pre-existing weights')
     args = parser.parse_args()
     qAgent = DeepQAgent(render= args.render)
-    qAgent.train(review= False)
+    if args.load:
+        qAgent.epsilon = qAgent.epsilon_min
+        qAgent.load("../weights/StreetFighterWeights")
+    qAgent.train(review= True, episodes= 100)
+    qAgent.save("../weights/StreetFighterWeights")

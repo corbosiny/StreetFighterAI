@@ -1,7 +1,7 @@
 import argparse, retro, threading, os, numpy
 from collections import deque
 
-MAX_DATA_LENGTH = 20000
+MAX_DATA_LENGTH = 50000
 
 class Agent():
     """ Abstract class that user created Agents should inherit from.
@@ -15,7 +15,7 @@ class Agent():
     NEXT_STATE_INDEX = 3
     DONE_INDEX = 4
 
-    doneKeys = [1024, 1026, 1028]
+    doneKeys = [1024, 1026, 1028, 1032]
 
     def getStates():
         """Static method that gets and returns a list of all the save state names that can be loaded
@@ -66,6 +66,7 @@ class Agent():
         None
         """
         for _ in range(episodes):
+            print('Starting episode', _)
             self.memory = deque(maxlen= MAX_DATA_LENGTH)
             for state in Agent.getStates():
                 self.play(state= state)
