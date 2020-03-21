@@ -83,6 +83,7 @@ class DeepQAgent(Agent):
         self.model.add(Dense(24, input_dim= self.state_size, activation='relu'))
         self.model.add(Dense(48, activation='relu'))
         self.model.add(Dense(96, activation='relu'))
+        self.model.add(Dense(96, activation='relu'))
         self.model.add(Dense(48, activation='relu'))
         self.model.add(Dense(24, activation='relu'))
         self.model.add(Dense(self.action_size, activation='linear'))
