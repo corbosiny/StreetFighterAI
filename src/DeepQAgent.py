@@ -71,7 +71,7 @@ class DeepQAgent(Agent):
             return self.getRandomMove()
         stateData = self.prepareNetworkInputs(info)
         move = self.model.predict(stateData)[0]
-        move = [1 if value > 0 else 0 for value in move]
+        move = [1 if value > .5 else 0 for value in move]
         return move
 
     def initializeNetwork(self):
