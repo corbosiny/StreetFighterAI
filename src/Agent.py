@@ -17,7 +17,7 @@ class Agent():
 
     doneKeys = [1024, 1026, 1028, 1032]
 
-    DEFAULT_DIR_PATH = '../weights'
+    DEFAULT_WEIGHTS_DIR_PATH = '../weights'
     DEFAULT_LOGS_DIR_PATH = '../logs'
 
     def getWeightsName(self):

@@ -45,7 +45,7 @@ class DeepQAgent(Agent):
         self.initializeNetwork()
 
         if load:
-            self.loadModel(os.path.join(Agent.DEFAULT_DIR_PATH, self.getWeightsName()))
+            self.loadModel(os.path.join(Agent.DEFAULT_WEIGHTS_DIR_PATH, self.getWeightsName()))
 
         super(DeepQAgent, self).__init__(game= game, render= render) 
 
@@ -160,7 +160,7 @@ class DeepQAgent(Agent):
                 target = (reward + self.gamma * numpy.amax(self.model.predict(next_state)[0]))
             target_f = self.model.predict(state)
             target_f[0][action] = target
-            self.model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [history])
+            self.model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
         
@@ -193,7 +193,9 @@ class DeepQAgent(Agent):
         """
         self.model.save_weights(os.path.join(Agent.DEFAULT_WEIGHTS_DIR_PATH, self.getWeightsName()))
         with open(os.path.join(Agent.DEFAULT_LOGS_DIR_PATH, self.getLogsName()), 'a+') as file:
-            file.write(self.history)
+            for loss in self.lossHistory.losses:
+                file.write(str(loss))
+                file.write('\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description= 'Processes agent parameters.')
