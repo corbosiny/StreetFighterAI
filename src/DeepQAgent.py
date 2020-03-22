@@ -93,7 +93,7 @@ class DeepQAgent(Agent):
         self.model.add(Dense(48, activation='relu'))
         self.model.add(Dense(24, activation='relu'))
         self.model.add(Dense(self.action_size, activation='sigmoid'))
-        self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+        self.model.compile(loss='binary_crossentropy', optimizer=Adam(lr=self.learning_rate))
 
     def prepareNetworkInputs(self, step):
         """Generates a feature vector from thhe current game state information to feed into the network
