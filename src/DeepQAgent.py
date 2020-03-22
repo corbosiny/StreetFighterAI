@@ -13,13 +13,7 @@ class DeepQAgent(Agent):
 
     stateIndicies = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8}  # Mapping between player state values and their one hot encoding index
 
-    def getWeightsName():
-        return  self.__class__.__name__ + "Weights"
-
-    def getLogsName():
-        return self.__class__.name + "logs"
-
-    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= True, epsilon= 1):
+    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= 1):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -48,9 +42,10 @@ class DeepQAgent(Agent):
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.lossHistory = LossHistory()
+        self.initializeNetwork()
 
         if load:
-            self.loadModel(os.path.join(Agent.DEFAULT_DIR_PATH, DeepQAgent.getWeightsName()))
+            self.loadModel(os.path.join(Agent.DEFAULT_DIR_PATH, self.getWeightsName()))
 
         super(DeepQAgent, self).__init__(game= game, render= render) 
 
@@ -97,7 +92,7 @@ class DeepQAgent(Agent):
         self.model.add(Dense(96, activation='relu'))
         self.model.add(Dense(48, activation='relu'))
         self.model.add(Dense(24, activation='relu'))
-        self.model.add(Dense(self.action_size, activation='linear'))
+        self.model.add(Dense(self.action_size, activation='sigmoid'))
         self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
 
     def prepareNetworkInputs(self, step):
@@ -196,8 +191,8 @@ class DeepQAgent(Agent):
         -------
         None
         """
-        self.model.save_weights(os.path.join(Agent.DEFAULT_WEIGHTS_DIR_PATH, DeepQAgent.getWeightsName()))
-        with open(os.path.join(Agent.DEFAULT_LOGS_DIR_PATH, DeepQAgent.getLogsName()), 'a+') as file:
+        self.model.save_weights(os.path.join(Agent.DEFAULT_WEIGHTS_DIR_PATH, self.getWeightsName()))
+        with open(os.path.join(Agent.DEFAULT_LOGS_DIR_PATH, self.getLogsName()), 'a+') as file:
             file.write(self.history)
 
 if __name__ == "__main__":
@@ -207,5 +202,4 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--episodes', type= int, default= 10, help= 'Intger representing the number of training rounds to go through, checkpoints are made at the end of each episode')
     args = parser.parse_args()
     qAgent = DeepQAgent(render= args.render, load= args.load)
-    qAgent.load(os.path.join(Agent.DEFAULT_DIR_PATH, DeepQAgent.getWeightsName()))
     qAgent.train(review= True, episodes= args.episodes)
