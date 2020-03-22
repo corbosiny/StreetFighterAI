@@ -93,10 +93,10 @@ class DeepQAgent(Agent):
         self.model.add(Dense(48, activation='relu'))
         self.model.add(Dense(24, activation='relu'))
         self.model.add(Dense(self.action_size, activation='sigmoid'))
-        self.model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
+        self.model.compile(loss='binary_crossentropy', optimizer=Adam(lr=self.learning_rate))
 
     def prepareNetworkInputs(self, step):
-        """Generates a feature vector from thhe current game state information to feed into the network
+        """Generates a feature vector from the current game state information to feed into the network
         
         Parameters
         ----------
@@ -155,12 +155,16 @@ class DeepQAgent(Agent):
         """
         minibatch = random.sample(self.memory, 5000)
         for state, action, reward, next_state, done in minibatch:
-            target = reward
+            target = reward          
             if not done:
-                target = (reward + self.gamma * numpy.amax(self.model.predict(next_state)[0]))
-            target_f = self.model.predict(state)
-            target_f[0][action] = target
+                target = (reward + self.gamma * numpy.amax(self.model.predict(next_state)[0]))  
+
+            target_f = self.model.predict(state)[0]
+            for index, buttonPress in enumerate(action):
+                if buttonPress: target_f[index] = target
+            target_f = numpy.reshape(target_f, [1, self.action_size])
             self.model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
+        
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
         
