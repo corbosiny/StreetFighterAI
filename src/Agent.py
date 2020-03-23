@@ -1,6 +1,9 @@
 import argparse, retro, threading, os, numpy
 from collections import deque
 
+from tensorflow.python import keras
+from keras.models import load_model
+
 MAX_DATA_LENGTH = 50000
 
 class Agent():
@@ -17,11 +20,11 @@ class Agent():
 
     doneKeys = [1024, 1026, 1028, 1032]
 
-    DEFAULT_WEIGHTS_DIR_PATH = '../weights'
+    DEFAULT_MODELS_DIR_PATH = '../models'
     DEFAULT_LOGS_DIR_PATH = '../logs'
 
-    def getWeightsName(self):
-        return  self.__class__.__name__ + "Weights"
+    def getModelName(self):
+        return  self.__class__.__name__ + "Model"
 
     def getLogsName(self):
         return self.__class__.__name__ + "logs"
@@ -42,7 +45,7 @@ class Agent():
         states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
         return states
 
-    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False):
+    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -59,8 +62,11 @@ class Agent():
         """
         self.game = game
         self.render = render
-        self.memory = deque(maxlen= MAX_DATA_LENGTH)                                    # Double ended queue that stores states during the game
-        if self.__class__.__name__ != "Agent": self.initializeNetwork()                 # Only invoked in child subclasses, Agent has no network
+        self.memory = deque(maxlen= MAX_DATA_LENGTH)                                                    # Double ended queue that stores states during the game
+        if self.__class__.__name__ != "Agent" and not load: 
+            self.initializeNetwork()    								# Only invoked in child subclasses, Agent has no network
+        else: 
+            self.loadModel(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
 
     def train(self, review= True, episodes= 1):
         """Causes the Agent to run through each save state fight and record the results to review after
@@ -78,8 +84,8 @@ class Agent():
             print('Starting episode', _)
             self.memory = deque(maxlen= MAX_DATA_LENGTH)
             for state in Agent.getStates():
-                self.play(state= state)
-            if self.__class__.__name__ != "Agent" and review == True: self.trainNetwork()   # Only invoked in child subclasses, Agent does not learn
+                self.play(state= 'chunli')
+            if self.__class__.__name__ != "Agent" and review == True: self.trainNetwork()   		# Only invoked in child subclasses, Agent does not learn
 
     def play(self, state= 'chunli'):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
@@ -205,6 +211,38 @@ class Agent():
         None
         """
         raise NotImplementedError("Implement this is in the inherited agent")
+
+    def loadModel(self, name):
+        """Loads in pretrained model weights
+        Parameters
+        ----------
+        name
+            String name of the file that the weights will be loaded from
+
+        Returns
+        -------
+        None
+        """
+        self.model = load_model(name)
+        print("Model successfully loaded")
+
+    def saveModel(self):
+        """Saves the currently trained model weights
+        Parameters
+        ----------
+        name
+            String name of the file that the weights will be saved to
+
+        Returns
+        -------
+        None
+        """
+        self.model.save(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
+        print('Checkpoint established. model successfully saved')
+        with open(os.path.join(Agent.DEFAULT_LOGS_DIR_PATH, self.getLogsName()), 'a+') as file:
+            for loss in self.lossHistory.losses:
+                file.write(str(loss))
+                file.write('\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Processes agent parameters.')
