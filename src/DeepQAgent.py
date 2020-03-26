@@ -7,12 +7,21 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 from keras.models import load_model
+from collections import deque
 
 class DeepQAgent(Agent):
     """ An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn.
     """
 
+    doneKeys = [1024, 1026, 1028, 1032]
     stateIndicies = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8}  # Mapping between player state values and their one hot encoding index
+
+    def isActionableStep(step):
+        info = step[Agent.STATE_INDEX]
+        if info not in list(DeepQAgent.stateIndicies.keys()) or info not in list(DeepQAgent.stateIndicies):
+            return True
+        else:
+            return False
 
     def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= .1):
         """Initializes the agent and the underlying neural network
@@ -62,13 +71,15 @@ class DeepQAgent(Agent):
         move
             A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
-        if info['status'] not in DeepQAgent.stateIndicies.keys() or info['enemy_status'] not in DeepQAgent.stateIndicies.keys(): return [0] * self.action_size 
-        if numpy.random.rand() <= self.epsilon:
+        if DeepQAgent.isActionableStep(info):
+            return [0] * self.action_size
+        elif numpy.random.rand() <= self.epsilon:
             return self.getRandomMove()
-        stateData = self.prepareNetworkInputs(info)
-        move = self.model.predict(stateData)[0]
-        move = [1 if value > .5 else 0 for value in move]
-        return move
+        else:
+            stateData = self.prepareNetworkInputs(info)
+            move = self.model.predict(stateData)[0]
+            move = [1 if value > .5 else 0 for value in move]
+            return move
 
     def initializeNetwork(self):
         """Initializes a Neural Net for a Deep-Q learning Model
@@ -140,7 +151,7 @@ class DeepQAgent(Agent):
         feature_vector = numpy.reshape(feature_vector, [1, self.state_size])
         return feature_vector
 
-    def trainNetwork(self):
+    def trainNetwork(self, data):
         """To be implemented in child class, Runs through a training epoch reviewing the training data
         Parameters
         ----------
@@ -150,7 +161,7 @@ class DeepQAgent(Agent):
         -------
         None
         """
-        minibatch = random.sample(self.memory, 5000)
+        minibatch = random.sample(self.data, 5000)
         for state, action, reward, next_state, done in minibatch:
             target = reward          
             if not done:
@@ -165,6 +176,13 @@ class DeepQAgent(Agent):
             self.model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
         
         self.saveModel()
+
+    def prepareMemoryForTraining(self, memory):
+        data = []
+        for step in enumerate(self.memory):
+            if DeepQAgent.isActionableStep(step):
+                data.append(prepareNetworkInputs(step))
+        return data
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description= 'Processes agent parameters.')
