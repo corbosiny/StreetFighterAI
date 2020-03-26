@@ -11,15 +11,20 @@ class Agent():
         Contains helper functions for launching training environments and generating training data sets.
     """
 
-    # Static Variables for indexing into a point in the training data to find specific information
-    STATE_INDEX = 0
-    ACTION_INDEX = 1
-    REWARD_INDEX = 2
-    NEXT_STATE_INDEX = 3
-    DONE_INDEX = 4
+    ### Static Variables 
+
+    # The indicies representing what each index in a training point represent
+    STATE_INDEX = 0                                                                    # The state the agent was presented with    
+    ACTION_INDEX = 1                                                                   # The action the agent took
+    REWARD_INDEX = 2                                                                   # The reward the agent received for that action
+    NEXT_STATE_INDEX = 3                                                               # The next state that the action led to
+    DONE_INDEX = 4                                                                     # A flag signifying if the game is over
 
     DEFAULT_MODELS_DIR_PATH = '../models'
     DEFAULT_LOGS_DIR_PATH = '../logs'
+    
+    ### End of static variables 
+
 
     ### Static Methods
 
