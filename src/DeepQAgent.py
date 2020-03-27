@@ -92,16 +92,37 @@ class DeepQAgent(Agent):
         -------
         None
         """
-        self.model = Sequential()
-        self.model.add(Dense(24, input_dim= self.state_size, activation='relu'))
-        self.model.add(Dense(48, activation='relu'))
-        self.model.add(Dense(96, activation='relu'))
-        self.model.add(Dense(96, activation='relu'))
-        self.model.add(Dense(48, activation='relu'))
-        self.model.add(Dense(24, activation='relu'))
-        self.model.add(Dense(self.action_size, activation='sigmoid'))
-        self.model.compile(loss='binary_crossentropy', optimizer=Adam(lr=self.learning_rate))
+        model = Sequential()
+        model.add(Dense(24, input_dim= self.state_size, activation='relu'))
+        model.add(Dense(48, activation='relu'))
+        model.add(Dense(96, activation='relu'))
+        model.add(Dense(96, activation='relu'))
+        model.add(Dense(48, activation='relu'))
+        model.add(Dense(24, activation='relu'))
+        model.add(Dense(self.action_size, activation='sigmoid'))
+        model.compile(loss='binary_crossentropy', optimizer=Adam(lr=self.learning_rate))
         print('Successfully initialized model')
+        return model
+
+    def prepareMemoryForTraining(self, memory):
+        """prepares the recorded fight sequences into training data
+        
+        Parameters
+        ----------
+        memory
+            A 2D array where each index is a recording of a state, action, new state, and reward sequence
+            See readme for more details
+
+        Returns
+        -------
+        data
+            The prepared training data
+        """
+        data = []
+        for step in enumerate(self.memory):
+            if DeepQAgent.isActionableStep(step):
+                data.append(prepareNetworkInputs(step))
+        return data
 
     def prepareNetworkInputs(self, step):
         """Generates a feature vector from the current game state information to feed into the network
@@ -151,7 +172,7 @@ class DeepQAgent(Agent):
         feature_vector = numpy.reshape(feature_vector, [1, self.state_size])
         return feature_vector
 
-    def trainNetwork(self, data):
+    def trainNetwork(self, data, model):
         """To be implemented in child class, Runs through a training epoch reviewing the training data
         Parameters
         ----------
@@ -161,28 +182,21 @@ class DeepQAgent(Agent):
         -------
         None
         """
-        minibatch = random.sample(self.data, 5000)
+        minibatch = random.sample(data, 5000)
         for state, action, reward, next_state, done in minibatch:
             target = reward          
             if not done:
-                target = (reward + self.gamma * numpy.amax(self.model.predict(next_state)[0]))  
+                target = (reward + self.gamma * numpy.amax(model.predict(next_state)[0]))  
 
-            target_f = self.model.predict(state)[0]
+            target_f = model.predict(state)[0]
             counts = [1 for elem in target_f if elem == 1]
             if len(counts) > 0: target = target / len(counts)
             for index, buttonPress in enumerate(action):
                 if buttonPress: target_f[index] = target
             target_f = numpy.reshape(target_f, [1, self.action_size])
-            self.model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
+            model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
         
-        self.saveModel()
-
-    def prepareMemoryForTraining(self, memory):
-        data = []
-        for step in enumerate(self.memory):
-            if DeepQAgent.isActionableStep(step):
-                data.append(prepareNetworkInputs(step))
-        return data
+        return model
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description= 'Processes agent parameters.')

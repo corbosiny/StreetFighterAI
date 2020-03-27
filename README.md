@@ -15,6 +15,8 @@ This should be called in the top level directory of the repo. This will install 
 
 **-gym**  
 **-gym-retro**   
+**-tensorflow**   
+**-keras**   
 
 These libraries can sometimes have serious issues installing themselves or their dependencies on a windows machine. It is recommended to work on Linux. The server we will be training on runs Linux and all libraries plus code have been confirmed to work on Ubuntu's latest stable distribution.
 
@@ -44,9 +46,9 @@ With that the game files should be correctly set up and you should be able to ru
 
 To double check that the game files were properly set up the example agent can be run. cd into the src directory. Then either run the following command on your terminal:
 
-`python3 Agent.py`
+`python3 Agent.py -r`
 
-Or you can open Agent.py and execute it from your preferred IDE of choice. This is an Agent that essentially button mashes. It does a random move every frame update despite what is going on in the game. If everything was installed correctly it should simply one by one open up each save state in the game directory and run through the fight set up for it. This will involve a small window popping up showing the game running at a very high speed. Once the fight is over a new window should open up with the next fight. Once all fights are over the program should kill itself and close all windows. 
+Or you can open Agent.py and execute it from your preferred IDE of choice by supplying the -r flag during execution flag. Without that flag the Agent will play the games however they will not render and you will not be able to watch it. When running on the server via an ssh shell it is important to leave this flag off as an error will be thrown when trying to render. This is Agent that essentially button mashes. It does a random move every frame update despite what is going on in the game. If everything was installed correctly it should simply one by one open up each save state in the game directory and run through the fights set up for it. This will involve a small window popping up showing the game running at a very high speed. Once the fight is over a new window should open up with the next fight. Once all fights are over the program should kill itself and close all windows.
 
 ---
 ## How to make an agent
@@ -71,23 +73,43 @@ There are four main functions that need to be implemented in order to create a n
 
 #### getMove
 
-Get move simply returns a multivariate array that has ones in the input slots signifying which buttons the agent is pressing for the next frame update. 
+Get move simply returns a multivariate array of the action space of the game. A one in a given index represents the button corresponding to that index being pressed, a zero means the button is not pressed. This way multiple buttons can be pushed in one move and special moves can be preformed. This function must take in the observation and info about the current state. The observation is the contents of each pixel of the game screen and info is a dictionary containing key word mapped variables as specified in data.json. The indicies correspond to Up, Down, Left, Right, A, B, X, Y, L, R.
 
 #### initializeNetwork
 
-initializeNetwork does whatever under the hood set up needs to be done to either create a network from scratch or load in an existing network and weights
+initializeNetwork does whatever under the hood set up needs to be done to either create a network from scratch, if the load flag is supplied when initializing an Agent then a pretrained model will be loaded instead and this function does not need to be implemented. It does not take in any parameters but its expected to return the model desired for the Agent.
 
-#### prepareData
+#### prepareMemoryForTraining
 
-preps the recorded data of each match into such a way that it can be fed properly into the structure of the network this agent is using
+As the Agent plays it records the events during a fight. It records observation, state, action, reward, next observation, next state reward sequences. Each index in the memory buffer of the Agent demonstrates a state the Agent was presented with, the action it took, the next state the action led to, the reward the Agent received for that action, and a flag specifying if that game instance is finished. State and next state are both dictionaries containing the RAM data of the game at those times as specified in Data.json. The action is an array that represents a sampling of the action space as presented by the Agent where a one represents a given button being pressed and a zero is that button not being pressed. And finally Done is a boolean flag where True means the current game instance is over. Is expected to return an array containing the full set of prepared training data. The elements of these steps may change over time but their indicies are stored in a set of static variables in Agent.py as follows:
+
+**-OBSERVATION_INDEX**   
+**-STATE_INDEX**   
+**-ACTION_INDEX**   
+**-REWARD_INDEX**   
+**-NEXT_OBSERVATION_INDEX**   
+**-NEXT_STATE_INDEX**   
+**-DONE_INDEX**   
+
+A child class can access them by calling {class_name}.{variable_name}. Indexing into a step to get the next observation from the DeepQAgent for example would look like:
+
+`step[DeepQAgent.NEXT_OBSERVATION_INDEX]`
 
 #### trainNetwork
 
-runs a training epoch on the preparedData from all the last round of recorded fights
+Takes in the prepared training data and the current model and runs a desired amount of training epochs on it. The trained model is then returned once training is finished.
 
 ---
 
-## Jason Files
+### Training Checkpoints
+
+A training episode consists of one play through of each save state in the game folder. Once the episode is complete training will be run and after the trained and updated model is returned a checkpoint will be made by Agent.py in order to save the model for later use. As well custom training logs will be made for each unique class that is training that will show the training error of the Agent as it is learning. These logs and models are stored in the logs and models directories respectively and are formatted as models/{class_name}{Log} and logs/{class_name}{Model}. Note that the formatting is based on the class name and so only one instance of a model for each unique class can be stored as of now.
+
+### Watch Agent
+
+Watch Agent is a basic script that allows the user to load in a pretrained Agent and visualize it playing the game. It is useful to use this in conjunction with checkpoints in order to pause an Agent between episodes and view it's progress to understand if it's headed in the right direction and that things are working correctly.
+
+## Json Files
 
 There are three jason files that the gym environment reads in order to setup the high level "rules" of the emulation. These files are metadata.json, data.json, and scenario.json. 
 
@@ -97,15 +119,28 @@ The metadata.json file holds high level global information about the game enviro
 
 ### Data.json
 
-The data.json file is an abstraction of the games ram into callable variables with specified data types that the environment, user, and environment.json files can interact with. For now it specifies the memory addresses where the count down timer, agent round win counter, enemy round win counter, score, agent health, and enemy health can be found. 
+The data.json file is an abstraction of the games ram into callable variables with specified data types that the environment, user, and environment.json files can interact with. A complete list of named variables and their corresponding addresses in memory can be found listed in the file itself. If a publicly available RAM dump for a game can not be found finding new variables on your own is an involved process and requires monitoring RAM and downloading the bizhawk emulator. Bizhawk is an emulator used for developing tool assisted speedruns and has a wide selection of tools for RAM snooping. This video is a good reference for learning how to snoop RAM:
+
+[https://www.youtube.com/watch?v=zsPLCIAJE5o&t=900s]
 
 ### Scenario.json
 
-Scenario.json specifies several conditions over which that define the goal of the simulation or specify what criteria the agent will be judged on for rewards. The two main specifications are the reward function and the done flag.
+Scenario.json specifies several conditions over which that define the goal of the simulation or specify what criteria the agent will be judged on for rewards. The main specifications are the reward function and the done flag. The reward function for the StreetFighterAgents is seperated into it's own lua script to make designing a more complex reward function easier. The script can be imported and pointed to for use by gym-retro's environment for it's reward function by including the code snippet in scenario.json as follows:
+
+```
+
+"reward": {
+        "script": "lua:calculate_reward"
+    },
+"scripts": [
+        "reward_script.lua"
+    ],
+
+```
 
 #### Reward Function
 
-The reward functione specifies what variables make up the reward function and what weights are assigned, whether that be positive or negative, to each variable. After each action is taken by an agent a reward calculated by this function is returned to the agent. This is then recorded and stored for later training after all fights in an epoch are finished. For now the default reward function utilizes the agent's health, the enemy health, the number of rounds the agent has won, and the number of rounds the enemy has won. 
+The reward function specifies what variables make up the reward function and what weights are assigned, whether that be positive or negative, to each variable. After each action is taken by an agent a reward calculated by this function is returned to the agent. This is then recorded and stored for later training after all fights in an epoch are finished. For now the default reward function utilizes the agent's score, agent's health, the enemy health, the number of rounds the agent has won, and the number of rounds the enemy has won. 
 
 #### Done
 
@@ -132,5 +167,10 @@ F2 is the shortcut key that saves the current state of the game. The state is sa
 
 ---
 ## References:
-https://github.com/openai/retro/issues/33 (outdated but helpful)
-https://medium.com/aureliantactics/integrating-new-games-into-retro-gym-12b237d3ed75 (Very helpful for writing the json files)
+[https://github.com/openai/retro/issues/33] (outdated but helpful)   
+[https://medium.com/aureliantactics/integrating-new-games-into-retro-gym-12b237d3ed75] (Very helpful for writing the json files)  
+
+[https://www.youtube.com/watch?v=JgvyzIkgxF0] (reinforcement learning intro video)   
+[https://www.youtube.com/watch?v=0Ey02HT_1Ho] (more advanced techniques)   
+[http://karpathy.github.io/2016/05/31/rl/] (good article on basic reinforcement learning)   
+[https://towardsdatascience.com/reinforcement-learning-lets-teach-a-taxi-cab-how-to-drive-4fd1a0d00529] (article on deep q learning for learning atari games)   

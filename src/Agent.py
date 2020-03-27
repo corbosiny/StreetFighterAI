@@ -12,11 +12,13 @@ class Agent():
     ### Static Variables 
 
     # The indicies representing what each index in a training point represent
-    STATE_INDEX = 0                                                                    # The state the agent was presented with    
-    ACTION_INDEX = 1                                                                   # The action the agent took
-    REWARD_INDEX = 2                                                                   # The reward the agent received for that action
-    NEXT_STATE_INDEX = 3                                                               # The next state that the action led to
-    DONE_INDEX = 4                                                                     # A flag signifying if the game is over
+    OBSERVATION_INDEX = 0                                                              # The current display image of the game state
+    STATE_INDEX = 1                                                                    # The state the agent was presented with    
+    ACTION_INDEX = 2                                                                   # The action the agent took
+    REWARD_INDEX = 3                                                                   # The reward the agent received for that action
+    NEXT_OBSERVATION_INDEX = 4                                                         # The current display image of the new state the action led to
+    NEXT_STATE_INDEX = 5                                                               # The next state that the action led to
+    DONE_INDEX = 6                                                                     # A flag signifying if the game is over
 
     MAX_DATA_LENGTH = 50000
 
@@ -24,7 +26,6 @@ class Agent():
     DEFAULT_LOGS_DIR_PATH = '../logs'
     
     ### End of static variables 
-
 
     ### Static Methods
 
@@ -34,7 +35,7 @@ class Agent():
 
     def getLogsName(self):
         """Returns the formatted log name for the current model"""
-        return self.__class__.__name__ + "logs"
+        return self.__class__.__name__ + "Logs"
 
     def getStates():
         """Static method that gets and returns a list of all the save state names that can be loaded
@@ -78,9 +79,9 @@ class Agent():
         self.render = render
         if self.__class__.__name__ != "Agent":
             if load: 
-                self.initializeNetwork()    								           # Only invoked in child subclasses, Agent has no network
+                self.model = self.initializeNetwork()    								           # Only invoked in child subclasses, Agent has no network
             else: 
-                self.loadModel()
+                self.model = self.loadModel()
 
     def train(self, review= True, episodes= 1):
         """Causes the Agent to run through each save state fight and record the results to review after
@@ -99,12 +100,14 @@ class Agent():
         """
         for episodeNumber in range(episodes):
             print('Starting episode', episodeNumber)
-            self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                         # Double ended queue that stores states during the game
+            self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
             for state in Agent.getStates():
                 self.play(state= state)
+
             if self.__class__.__name__ != "Agent" and review == True: 
                 data = self.prepareMemoryForTraining(self.memory)
-                self.trainNetwork(data)   		                                       # Only invoked in child subclasses, Agent does not learn
+                self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn
+                self.saveModel()
 
     def play(self, state):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
@@ -125,8 +128,8 @@ class Agent():
             self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
             obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
 
-            self.recordStep(self.lastInfo, self.lastAction, self.lastReward, info, self.done)
-            self.lastObservation, self.lastInfo = [obs, info]                          # Overwrite after recording step so Agent remembers the previous state that led to this one
+            self.recordStep(self. lastObservation, self.lastInfo, self.lastAction, self.lastReward, obs, info, self.done)
+            self.lastObservation, self.lastInfo = [obs, info]                                      # Overwrite after recording step so Agent remembers the previous state that led to this one
 
         self.environment.close()
 
@@ -141,13 +144,16 @@ class Agent():
         -------
             move a binary array of random button press combinations within the environments action space
         """
-        move = self.environment.action_space.sample()                                  # Take random sample of all the button press inputs the Agent could make
+        move = self.environment.action_space.sample()                                              # Take random sample of all the button press inputs the Agent could make
         return move                                
 
-    def recordStep(self, state, action, reward, nextState, done):
+    def recordStep(self, observation, state, action, reward, nextObservation, nextState, done):
         """Records the last observation, action, reward and the resultant observation about the environment for later training
         Parameters
         ----------
+        observation
+            The current display image in the form of a 2D array containing RGB values of each pixel
+
         state
             The state the Agent was presented with before it took an action.
             A dictionary containing tagged RAM data
@@ -159,6 +165,9 @@ class Agent():
         reward
             The reward the agent received for taking that action
 
+        nextObservation
+            The resultant display image in the form of a 2D array containing RGB values of each pixel
+
         nextState
             The state that the chosen action led to
 
@@ -169,7 +178,7 @@ class Agent():
         -------
         None
         """
-        self.memory.append((state, action, reward, nextState, done))                     # Steps are stored as tuples to avoid unintended changes
+        self.memory.append((observation, state, action, reward, nextObservation, nextState, done)) # Steps are stored as tuples to avoid unintended changes
 
     def initEnvironment(self, state):
         """Initializes a game environment that the Agent can play a save state in
@@ -185,8 +194,8 @@ class Agent():
         """
         self.environment = retro.make(self.game, state)
         self.environment.reset() 
-        firstAction = numpy.zeros(len(self.environment.action_space.sample()))           # The first action is always nothing in order for the Agent to get it's first set of infos before acting
-        self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction)   # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
+        firstAction = numpy.zeros(len(self.environment.action_space.sample()))                     # The first action is always nothing in order for the Agent to get it's first set of infos before acting
+        self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction)             # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
         self.done = False
 
 
@@ -198,10 +207,12 @@ class Agent():
 
         Returns
         -------
-        None
+        model
+            The loaded model of the agent from the specified file
         """
-        self.model = load_model(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
+        model = load_model(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
         print("Model successfully loaded")
+        return model
 
     def saveModel(self):
         """Saves the currently trained model in the default naming convention ../models/{Agent_Class_Name}Model
@@ -223,6 +234,7 @@ class Agent():
     ### End of object methods
 
     ### Abstract methods for the child Agent to implement
+
     def getMove(self, obs, info):
         """Returns a set of button inputs generated by the Agent's network after looking at the current observation
 
@@ -243,21 +255,49 @@ class Agent():
         return self.getRandomMove()
 
     def initializeNetwork(self):
-        """To be implemented in child class, should initialize or load in the Agent's neural network"""
-        raise NotImplementedError("Implement this is in the inherited agent")
-    
-    def prepareMemoryForTraining(self, memory):
-        raise NotImplementedError("Implement this is in the inherited agent")
-
-    def trainNetwork(self, data):
-        """To be implemented in child class, Runs through a training epoch reviewing the training data
+        """To be implemented in child class, should initialize or load in the Agent's neural network
+        
         Parameters
         ----------
         None
 
         Returns
         -------
-        None
+        model
+            A newly initialized model that the Agent will use when generating moves
+        """
+        raise NotImplementedError("Implement this is in the inherited agent")
+    
+    def prepareMemoryForTraining(self, memory):
+        """To be implemented in child class, should prepare the recorded fight sequences into training data
+        
+        Parameters
+        ----------
+        memory
+            A 2D array where each index is a recording of a state, action, new state, and reward sequence
+            See readme for more details
+
+        Returns
+        -------
+        data
+            The prepared training data
+        """
+        raise NotImplementedError("Implement this is in the inherited agent")
+
+    def trainNetwork(self, data, model):
+        """To be implemented in child class, Runs through a training epoch reviewing the training data and returns the trained model
+        Parameters
+        ----------
+        data
+            The training data for the model
+        
+        model
+            The model for the function to train
+
+        Returns
+        -------
+        model
+            The now trained and hopefully improved model
         """
         raise NotImplementedError("Implement this is in the inherited agent")
 
