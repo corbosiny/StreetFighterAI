@@ -13,10 +13,10 @@ To download the necessary dependencies after cloning the repo call:
 `pip3 install -r requirements.txt`
 This should be called in the top level directory of the repo. This will install the following libraries you will need to create game environments that serve as a wrapper abstracting the interface between your agent and the underlying emulator:
 
-**-gym**  
-**-gym-retro**   
-**-tensorflow**   
-**-keras**   
+-gym  
+-gym-retro   
+-tensorflow   
+-keras   
 
 These libraries can sometimes have serious issues installing themselves or their dependencies on a windows machine. It is recommended to work on Linux. The server we will be training on runs Linux and all libraries plus code have been confirmed to work on Ubuntu's latest stable distribution.
 
@@ -60,7 +60,7 @@ To make your own agent it is recommended to make a class that inherits from Agen
 -Recording data during the fights
 -And even training the agent after the fights
 
-Some of these methods aren't filled in but the overall framework in place makes it easy to drop in your own versions of the getMove, train, and initialize network functions such that there is little work outside of network design that has to be done to get your agent up and running. The goal is to create a streamlined platform to rapidly prototype, train, and deploy new agents instead of starting for scratch everytime. As well enforcing the interface for the agent class allows for high level software to be developed that can import various user created agents without fear of breaking due to interface issues. 
+Some of these methods aren't filled in but the overall framework in place makes it easy to drop in your own versions of the getMove, train, and initialize network functions such that there is little work outside of network design that has to be done to get your agent up and running. The goal is to create a streamlined platform to rapidly prototype, train, and deploy new agents instead of starting for scratch every time. As well enforcing the interface for the agent class allows for high level software to be developed that can import various user created agents without fear of breaking due to interface issues. 
 
 ### Agent class
 
@@ -68,12 +68,14 @@ There are four main functions that need to be implemented in order to create a n
 
 -getMove  
 -initializeNetwork  
--prepareData  
+-prepareMemoryForTraining  
 -trainNetwork
+
+Each section below gives a description of the interface required for each function and it's purpose. Further documentation can be seen inside the code of Agent.py
 
 #### getMove
 
-Get move simply returns a multivariate array of the action space of the game. A one in a given index represents the button corresponding to that index being pressed, a zero means the button is not pressed. This way multiple buttons can be pushed in one move and special moves can be preformed. This function must take in the observation and info about the current state. The observation is the contents of each pixel of the game screen and info is a dictionary containing key word mapped variables as specified in data.json. The indicies correspond to Up, Down, Left, Right, A, B, X, Y, L, R.
+Get move simply returns a multivariate array of the action space of the game. A one in a given index represents the button corresponding to that index being pressed, a zero means the button is not pressed. This way multiple buttons can be pushed in one move and special moves can be preformed. This function must take in the observation and info about the current state. The observation is the contents of each pixel of the game screen and info is a dictionary containing key word mapped variables as specified in data.json. The indices correspond to Up, Down, Left, Right, A, B, X, Y, L, R.
 
 #### initializeNetwork
 
@@ -83,13 +85,13 @@ initializeNetwork does whatever under the hood set up needs to be done to either
 
 As the Agent plays it records the events during a fight. It records observation, state, action, reward, next observation, next state reward sequences. Each index in the memory buffer of the Agent demonstrates a state the Agent was presented with, the action it took, the next state the action led to, the reward the Agent received for that action, and a flag specifying if that game instance is finished. State and next state are both dictionaries containing the RAM data of the game at those times as specified in Data.json. The action is an array that represents a sampling of the action space as presented by the Agent where a one represents a given button being pressed and a zero is that button not being pressed. And finally Done is a boolean flag where True means the current game instance is over. Is expected to return an array containing the full set of prepared training data. The elements of these steps may change over time but their indicies are stored in a set of static variables in Agent.py as follows:
 
-**-OBSERVATION_INDEX**   
-**-STATE_INDEX**   
-**-ACTION_INDEX**   
-**-REWARD_INDEX**   
-**-NEXT_OBSERVATION_INDEX**   
-**-NEXT_STATE_INDEX**   
-**-DONE_INDEX**   
+-OBSERVATION_INDEX   
+-STATE_INDEX   
+-ACTION_INDEX   
+-REWARD_INDEX   
+-NEXT_OBSERVATION_INDEX   
+-NEXT_STATE_INDEX   
+-DONE_INDEX   
 
 A child class can access them by calling {class_name}.{variable_name}. Indexing into a step to get the next observation from the DeepQAgent for example would look like:
 
