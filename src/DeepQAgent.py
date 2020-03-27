@@ -120,7 +120,6 @@ class DeepQAgent(Agent):
             8 one hot encoded enemy character elements, player_health, player_x, player_y, and finally
             8 one hot encoded player state elements.
         """
-<<<<<<< Updated upstream
         feature_vector = []
         
         # Enemy Data
@@ -153,11 +152,6 @@ class DeepQAgent(Agent):
         return feature_vector
 
     def trainNetwork(self, data):
-=======
-        raise NotImplementedError("Implement this is in the inherited agent")
-
-    def trainNetwork(self, batch_size= 1000):
->>>>>>> Stashed changes
         """To be implemented in child class, Runs through a training epoch reviewing the training data
         Parameters
         ----------
@@ -167,7 +161,6 @@ class DeepQAgent(Agent):
         -------
         None
         """
-<<<<<<< Updated upstream
         minibatch = random.sample(self.data, 5000)
         for state, action, reward, next_state, done in minibatch:
             target = reward          
@@ -183,39 +176,6 @@ class DeepQAgent(Agent):
             self.model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
         
         self.saveModel()
-=======
-        minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
-            target = reward
-            if not done:
-                target = (reward + self.gamma * np.amax(self.model.predict(next_state)[0]))
-            target_f = self.model.predict(state)
-            target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
-
-
-    def load(self, name):
-        """Loads in pretrained model weights
-        Parameters
-        ----------
-        name
-            String name of the file that the weights will be loaded from
-
-        Returns
-        -------
-        None
-        """
-        self.model.load_weights(name)
-
-    def save(self, name):
-        """Saves the currently trained model weights
-        Parameters
-        ----------
-        name
-            String name of the file that the weights will be saved to
->>>>>>> Stashed changes
 
     def prepareMemoryForTraining(self, memory):
         data = []
