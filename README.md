@@ -36,7 +36,7 @@ That should return the path to where the retro __init__.py script is stored. One
 -scenario.json  
 -data.json  
 -metadata.json  
--reward_script.lua
+-reward_script.lua   
 -Several .state files with each having the name of a specific fighter from the game  
 
 With that the game files should be correctly set up and you should be able to run a test agent. 
@@ -121,7 +121,7 @@ The metadata.json file holds high level global information about the game enviro
 
 The data.json file is an abstraction of the games ram into callable variables with specified data types that the environment, user, and environment.json files can interact with. A complete list of named variables and their corresponding addresses in memory can be found listed in the file itself. If a publicly available RAM dump for a game can not be found finding new variables on your own is an involved process and requires monitoring RAM and downloading the bizhawk emulator. Bizhawk is an emulator used for developing tool assisted speedruns and has a wide selection of tools for RAM snooping. This video is a good reference for learning how to snoop RAM:
 
-[https://www.youtube.com/watch?v=zsPLCIAJE5o&t=900s]
+https://www.youtube.com/watch?v=zsPLCIAJE5o&t=900s
 
 ### Scenario.json
 
@@ -167,10 +167,10 @@ F2 is the shortcut key that saves the current state of the game. The state is sa
 
 ---
 ## References:
-[https://github.com/openai/retro/issues/33] (outdated but helpful)   
-[https://medium.com/aureliantactics/integrating-new-games-into-retro-gym-12b237d3ed75] (Very helpful for writing the json files)  
+https://github.com/openai/retro/issues/33 (outdated but helpful)   
+https://medium.com/aureliantactics/integrating-new-games-into-retro-gym-12b237d3ed75 (Very helpful for writing the json files)  
 
-[https://www.youtube.com/watch?v=JgvyzIkgxF0] (reinforcement learning intro video)   
-[https://www.youtube.com/watch?v=0Ey02HT_1Ho] (more advanced techniques)   
-[http://karpathy.github.io/2016/05/31/rl/] (good article on basic reinforcement learning)   
-[https://towardsdatascience.com/reinforcement-learning-lets-teach-a-taxi-cab-how-to-drive-4fd1a0d00529] (article on deep q learning for learning atari games)   
+https://www.youtube.com/watch?v=JgvyzIkgxF0 (reinforcement learning intro video)   
+https://www.youtube.com/watch?v=0Ey02HT_1Ho (more advanced techniques)   
+http://karpathy.github.io/2016/05/31/rl/ (good article on basic reinforcement learning)   
+https://towardsdatascience.com/reinforcement-learning-lets-teach-a-taxi-cab-how-to-drive-4fd1a0d00529 (article on deep q learning for learning atari games)   
