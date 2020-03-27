@@ -4,8 +4,6 @@ from collections import deque
 from tensorflow.python import keras
 from keras.models import load_model
 
-MAX_DATA_LENGTH = 50000
-
 class Agent():
     """ Abstract class that user created Agents should inherit from.
         Contains helper functions for launching training environments and generating training data sets.
@@ -17,6 +15,8 @@ class Agent():
     REWARD_INDEX = 2
     NEXT_STATE_INDEX = 3
     DONE_INDEX = 4
+
+    MAX_DATA_LENGTH = 50000
 
     DEFAULT_MODELS_DIR_PATH = '../models'
     DEFAULT_LOGS_DIR_PATH = '../logs'
@@ -71,7 +71,6 @@ class Agent():
         """
         self.game = game
         self.render = render
-        self.memory = deque(maxlen= MAX_DATA_LENGTH)                                   # Double ended queue that stores states during the game
         if self.__class__.__name__ != "Agent":
             if load: 
                 self.initializeNetwork()    								           # Only invoked in child subclasses, Agent has no network
@@ -93,9 +92,9 @@ class Agent():
         -------
         None
         """
-        for _ in range(episodes):
-            print('Starting episode', _)
-            self.memory = deque(maxlen= MAX_DATA_LENGTH)
+        for episodeNumber in range(episodes):
+            print('Starting episode', episodeNumber)
+            self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                         # Double ended queue that stores states during the game
             for state in Agent.getStates():
                 self.play(state= state)
             if self.__class__.__name__ != "Agent" and review == True: 

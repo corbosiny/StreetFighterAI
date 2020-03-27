@@ -10,7 +10,7 @@ from keras.models import load_model
 from collections import deque
 
 class DeepQAgent(Agent):
-    """ An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn.
+    """ An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2
     """
 
     doneKeys = [1024, 1026, 1028, 1032]
