@@ -166,6 +166,29 @@ Retroarch needs a core of the architecture it is trying to simulate. The Street 
 F2 is the shortcut key that saves the current state of the game. The state is saved to the currently selected game state slot. This starts at slot zero and can be incremented with the F6 key and decremented with the F7 key. When a fight is about to start that you want to create a state for hit F2. Then I would recommend incrementing the save slot by pressing F6 so that if you try to save another state you don't accidentally overwrite the last state you saved. There are 8 slots in total. By pressing F5 and going to view->settings-Directory you can control where the save states are stored. The states will be saved with the extension of 'state' plus the number of the save slot it was saved in. To prep these for usage cleave off the number at the end of each extension and rename each file to the name of the fighter that the agent will be going up against plus some other context information if necessary. Then move these ROMS into the game files inside of retro like when preparing the game files after the initial cloning of the repo. Once inside that repo each state should be zipped independently of one another. Once this happens the extension will now be .zip, remove this from the extension so that the extension still remains .state. The states are now ready to be loaded by the agent. Every time you load up the emulator decrement all the way back to zero again. 
 
 ---
+## Example Implemented Agents
+
+### DeepQAgent
+
+DeepQAgent is an implementation of the DeepQ reinforcement algorithm for playing StreetFighter using policy gradients, a dense reward function, and greedy exploration controlled by an epsilon value that decreases as the model is trained. Each action the Agent takes during a fight is rewarded after a change in time in order to see what effect the move had on the fight outcome. When the model is first initialized it plays completely randomly in order to kick start rapid greedy exploration. As the model trains epsilon slowly decreases until the model begins to take over now that it has watched random play for a while and hopefully picked up some techniques. Below is a description the implementation of each of the abstract functions required for a child class. The observation of the current state is not actually used in training as building a network to do feature extraction for each stage and fighter combination from image data would be incredibly hard. That information is thrown away and instead only the RAM data is used to train.
+
+#### Get Move
+
+ The RAM data of the current state is converted into a feature vector by the helper function prepareNetworkInputs. Several parts of the RAM data such as the enemy character, player and enemy_state, and more are one hot encoded so that mutual independence is established. This leads to a feature vector containing 30 elements that is fed into the network. The output of the network decides what move the Agent will take from a preset move list where the move is then mapped to a set of inputs via a look up table and fed into the environment. The activation function of the output layer is a softmax function that assigns a probability to each possible move. These probabilities all sum to one and the move with the highest probability is picked as the action the Agent will undertake. However whenever a move is requested by the Agent a random number is generated, if this number is below the epsilon value, which ranges from 0 to 1 and decreases over time towards a lower bound during training, a random move is picked instead. This forces exploration of new strategies by the Agent. However this exploration is not informed by any model the Agent has and so is simply random greedy exploration. 
+
+#### initializeNetwork
+
+The input layer is the size of the info about the state space that is created in prepareNetworkInputs when converting the RAM info of the current state into a feature vector. There are 5 hidden layers all with linear activations. The output layer is the size of the predefined user action space. Note that this is not the same as the action space of the game. The action space of the game is the number of buttons the Agent can possibly press, however to assist the Agent a predefined set of button inputs for specific moves and combos have been established to chose from. So the output of the network is the size of the predefined set of moves. The output activation function is softmax so that each predefined move is assigned a probability by the network that all sum to one. 
+
+#### preprareMemoryForTraining
+
+Each time step from the training game memory has the RAM data from the game converted into a 30 element feature vector described in the top of the section. That is the only preparation needed. The states where the Agent is locked in hit stun or is in the middle of a move could be filtered out but as their reward is zero they will not effect the training weights. However they do slow down the training time so future updates will most likely filter them out for performance's sake. 
+
+#### trainNetwork
+
+For training the method of policy gradients is used. A dense reward function has been designed so that the Agent can be given frequent rewards for using good moves. Policy gradients essentially uses the reward for each state, action, new state sequence as the gradient for training our network. The gradient vector then has the index of the move chosen set to the reward and all other indices are left zero. So the network is either trained to pick solely that move more or less in that state depending on the reward, but other moves are not penalized. 
+
+---
 ## References:
 https://github.com/openai/retro/issues/33 (outdated but helpful)   
 https://medium.com/aureliantactics/integrating-new-games-into-retro-gym-12b237d3ed75 (Very helpful for writing the json files)  
