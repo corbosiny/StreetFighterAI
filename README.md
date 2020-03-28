@@ -85,7 +85,7 @@ initializeNetwork does whatever under the hood set up needs to be done to either
 
 #### prepareMemoryForTraining
 
-As the Agent plays it records the events during a fight. It records observation, state, action, reward, next observation, next state reward sequences. Each index in the memory buffer of the Agent demonstrates a state the Agent was presented with, the action it took, the next state the action led to, the reward the Agent received for that action, and a flag specifying if that game instance is finished. State and next state are both dictionaries containing the RAM data of the game at those times as specified in Data.json. The action is an array that represents a sampling of the action space as presented by the Agent where a one represents a given button being pressed and a zero is that button not being pressed. And finally Done is a boolean flag where True means the current game instance is over. Is expected to return an array containing the full set of prepared training data. The elements of these steps may change over time but their indicies are stored in a set of static variables in Agent.py as follows:
+As the Agent plays it records the events during a fight. It records observation, state, action, reward, next observation, next state reward sequences. Each index in the memory buffer of the Agent demonstrates a state the Agent was presented with, the action it took, the next state the action led to, the reward the Agent received for that action, and a flag specifying if that game instance is finished. State and next state are both dictionaries containing the RAM data of the game at those times as specified in Data.json. The action is an array that represents a sampling of the action space as presented by the Agent where a one represents a given button being pressed and a zero is that button not being pressed. And finally Done is a boolean flag where True means the current game instance is over. Is expected to return an array containing the full set of prepared training data. The elements of these steps may change over time but their indices are stored in a set of static variables in Agent.py as follows:
 
 -OBSERVATION_INDEX   
 -STATE_INDEX   
@@ -186,7 +186,7 @@ The input layer is the size of the info about the state space that is created in
 
 #### preprareMemoryForTraining
 
-Each time step from the training game memory has the RAM data from the game converted into a 30 element feature vector described in the top of the section. That is the only preparation needed. The states where the Agent is locked in hit stun or is in the middle of a move could be filtered out but as their reward is zero they will not effect the training weights. However they do slow down the training time so future updates will most likely filter them out for performance's sake. 
+Each time step from the training game memory has the RAM data from the game converted into a 30 element feature vector described in the top of the section. That is the only preparation needed. The states where the Agent is locked in hit stun or is in the middle of a move could be filtered out but as their reward is zero they will not effect the training weights. However they do slow down the training time so future updates will most likely filter them out for performance's sake. The observation, next_state, and done flag are thrown out in this model for simplicities sake. However they will be utilized in future updates.
 
 #### trainNetwork
 

@@ -78,7 +78,7 @@ class Agent():
         self.game = game
         self.render = render
         if self.__class__.__name__ != "Agent":
-            if load: 
+            if not load: 
                 self.model = self.initializeNetwork()    								           # Only invoked in child subclasses, Agent has no network
             else: 
                 self.model = self.loadModel()

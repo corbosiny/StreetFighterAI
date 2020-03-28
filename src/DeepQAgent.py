@@ -10,18 +10,31 @@ from keras.models import load_model
 from collections import deque
 
 class DeepQAgent(Agent):
-    """ An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2
-    """
+    """An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2"""
+    
 
     doneKeys = [1024, 1026, 1028, 1032]
-    stateIndicies = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8}  # Mapping between player state values and their one hot encoding index
 
-    def isActionableStep(step):
-        info = step[Agent.STATE_INDEX]
-        if info not in list(DeepQAgent.stateIndicies.keys()) or info not in list(DeepQAgent.stateIndicies):
-            return True
-        else:
+    # Mapping between player state values and their one hot encoding index
+    stateIndices = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8} 
+
+    def isActionableState(state):
+        """Determines if the Agent has control over the game in it's current state(the Agent is in hit stun, ending lag, etc.)
+
+        Parameters
+        ----------
+        state
+            The RAM info of the current game state the Agent is presented with as a dictionary of keyworded values from Data.json
+
+        Returns
+        -------
+        isActionable
+            A boolean variable describing whether the Agent has control over the given state of the game
+        """
+        if state['status'] not in list(DeepQAgent.stateIndices.keys()) or state['enemy_status'] not in list(DeepQAgent.stateIndices.keys()):
             return False
+        else:
+            return True
 
     def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= .1):
         """Initializes the agent and the underlying neural network
@@ -51,7 +64,6 @@ class DeepQAgent(Agent):
         self.epsilon_decay = 0.995
         self.learning_rate = 0.001
         self.lossHistory = LossHistory()
-
         super(DeepQAgent, self).__init__(game= game, render= render, load= load) 
 
     def getMove(self, obs, info):
@@ -71,7 +83,7 @@ class DeepQAgent(Agent):
         move
             A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
-        if DeepQAgent.isActionableStep(info):
+        if not DeepQAgent.isActionableState(info):
             return [0] * self.action_size
         elif numpy.random.rand() <= self.epsilon:
             return self.getRandomMove()
@@ -90,12 +102,12 @@ class DeepQAgent(Agent):
 
         Returns
         -------
-        None
+        model
+            The initialized neural network model that Agent will interface with to generate game moves
         """
         model = Sequential()
         model.add(Dense(24, input_dim= self.state_size, activation='relu'))
         model.add(Dense(48, activation='relu'))
-        model.add(Dense(96, activation='relu'))
         model.add(Dense(96, activation='relu'))
         model.add(Dense(48, activation='relu'))
         model.add(Dense(24, activation='relu'))
@@ -116,12 +128,19 @@ class DeepQAgent(Agent):
         Returns
         -------
         data
-            The prepared training data
+            The prepared training data in whatever from the model needs to train
+            DeepQ needs a state, action, and reward sequence to train on
+            The observation data is thrown out for this model for training
         """
         data = []
-        for step in enumerate(self.memory):
-            if DeepQAgent.isActionableStep(step):
-                data.append(prepareNetworkInputs(step))
+        for index, step in enumerate(self.memory):
+            state = step[Agent.STATE_INDEX]
+            if DeepQAgent.isActionableState(state):
+                data.append(
+                [self.prepareNetworkInputs(step[Agent.STATE_INDEX]), 
+                step[Agent.ACTION_INDEX], 
+                step[Agent.REWARD_INDEX]])
+
         return data
 
     def prepareNetworkInputs(self, step):
@@ -150,8 +169,8 @@ class DeepQAgent(Agent):
 
         # one hot encode enemy state
         # enemy_status - 512 if standing, 514 if crouching, 516 if jumping, 518 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
-        oneHotEnemyState = [0] * len(DeepQAgent.stateIndicies.keys())
-        if step['enemy_status'] not in [0, 528, 530, 1024, 1026, 1028, 1030, 1032]: oneHotEnemyState[DeepQAgent.stateIndicies[step["enemy_status"]]] = 1
+        oneHotEnemyState = [0] * len(DeepQAgent.stateIndices.keys())
+        oneHotEnemyState[DeepQAgent.stateIndices[step["enemy_status"]]] = 1
         feature_vector += oneHotEnemyState
 
         # one hot encode enemy character
@@ -165,8 +184,8 @@ class DeepQAgent(Agent):
         feature_vector.append(step["y_position"])
 
         # player_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
-        oneHotPlayerState = [0] * len(DeepQAgent.stateIndicies.keys())
-        if step['status'] not in [0, 528, 530, 1024, 1026, 1028, 1030, 1032]: oneHotPlayerState[DeepQAgent.stateIndicies[step["status"]]] = 1
+        oneHotPlayerState = [0] * len(DeepQAgent.stateIndices.keys())
+        oneHotPlayerState[DeepQAgent.stateIndices[step["status"]]] = 1
         feature_vector += oneHotPlayerState
 
         feature_vector = numpy.reshape(feature_vector, [1, self.state_size])
@@ -176,25 +195,27 @@ class DeepQAgent(Agent):
         """To be implemented in child class, Runs through a training epoch reviewing the training data
         Parameters
         ----------
-        None
+        data
+            The training data for the model to train on, a 2D array of state, action, reward, sequence
 
+        model
+            The model to train and return the Agent to continue playing with
         Returns
         -------
-        None
+        model
+            The input model now updated after this round of training on data
         """
-        minibatch = random.sample(data, 5000)
-        for state, action, reward, next_state, done in minibatch:
-            target = reward          
-            if not done:
-                target = (reward + self.gamma * numpy.amax(model.predict(next_state)[0]))  
+        minibatch = random.sample(data, len(data))
+        for state, action, reward in minibatch:       
+            modelOutput = model.predict(state)[0]
 
-            target_f = model.predict(state)[0]
-            counts = [1 for elem in target_f if elem == 1]
-            if len(counts) > 0: target = target / len(counts)
+            counts = [1 for elem in action if elem == 1]
+            if len(counts) > 0: reward = reward / len(counts)
             for index, buttonPress in enumerate(action):
-                if buttonPress: target_f[index] = target
-            target_f = numpy.reshape(target_f, [1, self.action_size])
-            model.fit(state, target_f, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
+                if buttonPress: modelOutput[index] = reward
+
+            modelOutput = numpy.reshape(modelOutput, [1, self.action_size])
+            model.fit(state, modelOutput, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
         
         return model
 
