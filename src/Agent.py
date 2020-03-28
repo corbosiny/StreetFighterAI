@@ -1,4 +1,4 @@
-import argparse, retro, threading, os, numpy
+import argparse, retro, threading, os, numpy, time
 from collections import deque
 
 from tensorflow.python import keras
@@ -21,6 +21,8 @@ class Agent():
     DONE_INDEX = 6                                                                                 # A flag signifying if the game is over
 
     MAX_DATA_LENGTH = 50000
+
+    FRAME_RATE = 1 / 160                                                                           # The time between frames if real time is enabled
 
     DEFAULT_MODELS_DIR_PATH = '../models'
     DEFAULT_LOGS_DIR_PATH = '../logs'
@@ -83,7 +85,7 @@ class Agent():
             else: 
                 self.model = self.loadModel()
 
-    def train(self, review= True, episodes= 1):
+    def train(self, review= True, episodes= 1, realTime= False):
         """Causes the Agent to run through each save state fight and record the results to review after
 
         Parameters
@@ -94,6 +96,9 @@ class Agent():
         episodes
             An integer that represents the number of game play episodes to go through before training, once through the roster is one episode
 
+        realTime
+            A boolean flag used to slow the game down to approximately real game speed to make viewing for humans easier, defaults to false
+
         Returns
         -------
         None
@@ -103,19 +108,22 @@ class Agent():
             self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
             for state in Agent.getStates():
                 #self.play(state= state)
-                self.play(state= "chunli")
+                self.play(state= "chunli", realTime= realTime)
             if self.__class__.__name__ != "Agent" and review == True: 
                 data = self.prepareMemoryForTraining(self.memory)
                 self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn
                 self.saveModel()
 
-    def play(self, state):
+    def play(self, state, realTime= False):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
 
         Parameters
         ----------
         state
             A string of the name of the save state the Agent will be playing
+
+        realTime
+            A boolean flag used to slow the game down to approximately real game speed to make viewing for humans easier, defaults to false
 
         Returns
         -------
@@ -130,7 +138,7 @@ class Agent():
 
             self.recordStep(self. lastObservation, self.lastInfo, self.lastAction, self.lastReward, obs, info, self.done)
             self.lastObservation, self.lastInfo = [obs, info]                                      # Overwrite after recording step so Agent remembers the previous state that led to this one
-
+            if realTime: time.sleep(Agent.FRAME_RATE)
         self.environment.close()
 
     def getRandomMove(self):
