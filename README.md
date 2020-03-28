@@ -115,7 +115,7 @@ Watch Agent is a basic script that allows the user to load in a pretrained Agent
 
 ## Json Files
 
-There are three jason files that the gym environment reads in order to setup the high level "rules" of the emulation. These files are metadata.json, data.json, and scenario.json. 
+There are three json files that the gym environment reads in order to setup the high level "rules" of the emulation. These files are metadata.json, data.json, and scenario.json. 
 
 ### Metadata.json
 
