@@ -14,11 +14,11 @@ function calculate_reward()
   --  reward = reward + delta
   --end  
   
---  if data.health < previous_health then
---    local delta = data.health - previous_health
---    previous_health = data.health
---    reward = reward + delta
---  end
+  if data.health < previous_health then
+    local delta = data.health - previous_health
+    previous_health = data.health
+    reward = reward + delta
+  end
   
   if data.enemy_health < previous_enemy_health then
     local delta = previous_enemy_health - data.enemy_health
@@ -32,12 +32,12 @@ function calculate_reward()
     reward = reward + delta
   end
   
---  if data.enemy_matches_won > previous_enemy_matches_won then
---    local delta = -100
---    previous_enemy_matches_won = data.enemy_matches_won
---    reward = reward + delta
---  end
---  
---  return reward
+  if data.enemy_matches_won > previous_enemy_matches_won then
+    local delta = -100
+    previous_enemy_matches_won = data.enemy_matches_won
+    reward = reward + delta
+  end
+  
+  return reward
   
 end
