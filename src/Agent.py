@@ -102,8 +102,8 @@ class Agent():
             print('Starting episode', episodeNumber)
             self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
             for state in Agent.getStates():
-                self.play(state= state)
-
+                #self.play(state= state)
+                self.play(state= "chunli")
             if self.__class__.__name__ != "Agent" and review == True: 
                 data = self.prepareMemoryForTraining(self.memory)
                 self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn

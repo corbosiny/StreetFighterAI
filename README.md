@@ -195,7 +195,8 @@ For training the method of policy gradients is used. A dense reward function has
 ---
 ## References:
 https://github.com/openai/retro/issues/33 (outdated but helpful)   
-https://medium.com/aureliantactics/integrating-new-games-into-retro-gym-12b237d3ed75 (Very helpful for writing the json files)  
+https://medium.com/aureliantactics/integrating-new-games-into-retro-gym-12b237d3ed75 (Very helpful for writing the json files) 
+https://github.com/keon/deep-q-learning (Someones basic implementation of DeepQ in python) 
 
 https://www.youtube.com/watch?v=JgvyzIkgxF0 (reinforcement learning intro video)   
 https://www.youtube.com/watch?v=0Ey02HT_1Ho (more advanced techniques)   
