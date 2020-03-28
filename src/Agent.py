@@ -11,14 +11,14 @@ class Agent():
 
     ### Static Variables 
 
-    # The indicies representing what each index in a training point represent
-    OBSERVATION_INDEX = 0                                                              # The current display image of the game state
-    STATE_INDEX = 1                                                                    # The state the agent was presented with    
-    ACTION_INDEX = 2                                                                   # The action the agent took
-    REWARD_INDEX = 3                                                                   # The reward the agent received for that action
-    NEXT_OBSERVATION_INDEX = 4                                                         # The current display image of the new state the action led to
-    NEXT_STATE_INDEX = 5                                                               # The next state that the action led to
-    DONE_INDEX = 6                                                                     # A flag signifying if the game is over
+    # The indices representing what each index in a training point represent
+    OBSERVATION_INDEX = 0                                                                          # The current display image of the game state
+    STATE_INDEX = 1                                                                                # The state the agent was presented with    
+    ACTION_INDEX = 2                                                                               # The action the agent took
+    REWARD_INDEX = 3                                                                               # The reward the agent received for that action
+    NEXT_OBSERVATION_INDEX = 4                                                                     # The current display image of the new state the action led to
+    NEXT_STATE_INDEX = 5                                                                           # The next state that the action led to
+    DONE_INDEX = 6                                                                                 # A flag signifying if the game is over
 
     MAX_DATA_LENGTH = 50000
 
