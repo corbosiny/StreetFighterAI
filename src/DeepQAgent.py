@@ -1,4 +1,4 @@
-import argparse, retro, threading, os, numpy, random
+import argparse, retro, threading, os, numpy, random, math
 from Agent import Agent
 from LossHistory import LossHistory
 
@@ -35,6 +35,20 @@ class DeepQAgent(Agent):
             return False
         else:
             return True
+
+    def sigmoid(x):
+        """Applies the sigmoid function to x
+
+        Parameters
+        ----------
+        x
+            Any real number
+        Returns
+        -------
+        activation score
+            The resultant value of the sigmoid function applied to x
+        """
+        return 1 / (1 + math.exp(-x))
 
     def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= .1):
         """Initializes the agent and the underlying neural network
@@ -211,6 +225,7 @@ class DeepQAgent(Agent):
 
             counts = [1 for elem in action if elem == 1]
             if len(counts) > 0: reward = reward / len(counts)
+            reward = DeepQAgent.sigmoid(reward)
             for index, buttonPress in enumerate(action):
                 if buttonPress: modelOutput[index] = reward
 
