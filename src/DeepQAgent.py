@@ -12,7 +12,6 @@ from collections import deque
 class DeepQAgent(Agent):
     """An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2"""
     
-
     doneKeys = [1024, 1026, 1028, 1032]
 
     # Mapping between player state values and their one hot encoding index
@@ -50,7 +49,7 @@ class DeepQAgent(Agent):
         """
         return 1 / (1 + math.exp(-x))
 
-    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= .1):
+    def __init__(self, state_size= 32, action_size= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= .05):
         """Initializes the agent and the underlying neural network
 
         Parameters
