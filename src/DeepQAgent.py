@@ -222,8 +222,6 @@ class DeepQAgent(Agent):
         for state, action, reward in minibatch:       
             modelOutput = model.predict(state)[0]
 
-            counts = [1 for elem in action if elem == 1]
-            if len(counts) > 0: reward = reward / len(counts)
             reward = DeepQAgent.sigmoid(reward)
             for index, buttonPress in enumerate(action):
                 if buttonPress: modelOutput[index] = reward
