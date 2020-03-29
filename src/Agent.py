@@ -31,14 +31,6 @@ class Agent():
 
     ### Static Methods
 
-    def getModelName(self):
-        """Returns the formatted model name for the current model"""
-        return  self.__class__.__name__ + "Model"
-
-    def getLogsName(self):
-        """Returns the formatted log name for the current model"""
-        return self.__class__.__name__ + "Logs"
-
     def getStates():
         """Static method that gets and returns a list of all the save state names that can be loaded
 
@@ -59,7 +51,7 @@ class Agent():
 
     ### Object methods
 
-    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False):
+    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, name= None):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -73,12 +65,19 @@ class Agent():
         load
             A boolean flag that specifies whether to initialize the model from scratch or load in a pretrained model
 
+        name
+            A string representing the name of the model that will be used when saving the model and the training logs
+            Defaults to the class name if none are provided
+
         Returns
         -------
         None
         """
         self.game = game
         self.render = render
+        if name is None: self.name = self.__class__.__name__
+        else: self.name = name
+
         if self.__class__.__name__ != "Agent":
             if not load: 
                 self.model = self.initializeNetwork()    								           # Only invoked in child subclasses, Agent has no network
@@ -206,9 +205,8 @@ class Agent():
         self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction)             # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
         self.done = False
 
-
     def loadModel(self):
-        """Loads in pretrained model object ../models/{Agent_Class_Name}Model
+        """Loads in pretrained model object ../models/{Instance_Name}Model
         Parameters
         ----------
         None
@@ -223,7 +221,7 @@ class Agent():
         return model
 
     def saveModel(self):
-        """Saves the currently trained model in the default naming convention ../models/{Agent_Class_Name}Model
+        """Saves the currently trained model in the default naming convention ../models/{Instance_Name}Model
         Parameters
         ----------
         None
@@ -238,6 +236,14 @@ class Agent():
             for loss in self.lossHistory.losses:
                 file.write(str(loss))
                 file.write('\n')
+
+    def getModelName(self):
+        """Returns the formatted model name for the current model"""
+        return  self.name + "Model"
+
+    def getLogsName(self):
+        """Returns the formatted log name for the current model"""
+        return self.name + "Logs"
 
     ### End of object methods
 
