@@ -199,9 +199,9 @@ class Agent():
         -------
         None
         """
-        self.environment = retro.make(self.game, state)
+        self.environment = retro.make(self.game, state, use_restricted_actions= retro.Actions.DISCRETE)
         self.environment.reset() 
-        firstAction = numpy.zeros(len(self.environment.action_space.sample()))                     # The first action is always nothing in order for the Agent to get it's first set of infos before acting
+        firstAction = 0                                                                            # The first action is always nothing in order for the Agent to get it's first set of infos before acting
         self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction)             # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
         self.done = False
 

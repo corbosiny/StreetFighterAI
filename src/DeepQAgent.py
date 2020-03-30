@@ -71,7 +71,7 @@ class DeepQAgent(Agent):
             return 10
         return -math.log((1 / x) - 1)
 
-    def __init__(self, stateSize= 32, actionSize= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= 1, name= None):
+    def __init__(self, stateSize= 32, actionSize= 126, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= 1, name= None):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -130,7 +130,7 @@ class DeepQAgent(Agent):
         else:
             stateData = self.prepareNetworkInputs(info)
             move = self.model.predict(stateData)[0]
-            move = [1 if value > .5 else 0 for value in move]
+            move = numpy.argmax(move)
             return move
 
     def initializeNetwork(self):
@@ -151,8 +151,8 @@ class DeepQAgent(Agent):
         model.add(Dense(96, activation='relu'))
         model.add(Dense(48, activation='relu'))
         model.add(Dense(24, activation='relu'))
-        model.add(Dense(self.actionSize, activation='sigmoid'))
-        model.compile(loss='binary_crossentropy', optimizer=Adam(lr=self.learningRate))
+        model.add(Dense(self.actionSize, activation='linear'))
+        model.compile(loss='mse', optimizer=Adam(lr=self.learningRate))
         print('Successfully initialized model')
         return model
 
@@ -252,14 +252,13 @@ class DeepQAgent(Agent):
             modelOutput = model.predict(state)[0]
          
             if not done:
-                reward = (reward + self.gamma * DeepQAgent.logit(numpy.amax(self.model.predict(next_state)[0])))
+                reward = (reward + self.gamma *numpy.amax(self.model.predict(next_state)[0]))
 
-            reward = DeepQAgent.sigmoid(reward)
-            for index, buttonPress in enumerate(action):
-                if buttonPress: modelOutput[index] = reward
+            modelOutput[index] = reward
 
             modelOutput = numpy.reshape(modelOutput, [1, self.actionSize])
             model.fit(state, modelOutput, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
+
         if self.epsilon > DeepQAgent.EPSILON_MIN: self.epsilon *= self.epsilonDecay
         return model
 
