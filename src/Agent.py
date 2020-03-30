@@ -108,8 +108,8 @@ class Agent():
             print('Starting episode', episodeNumber)
             self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
             for state in Agent.getStates():
-                #self.play(state= state)
                 self.play(state= "chunli", realTime= realTime)
+            
             if self.__class__.__name__ != "Agent" and review == True: 
                 data = self.prepareMemoryForTraining(self.memory)
                 self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn
@@ -139,6 +139,7 @@ class Agent():
 
             while not self.isActionableState(info):
                 obs, tempReward, self.done, info = self.environment.step(Agent.NO_MOVE)
+                if self.render: self.environment.render()
                 self.lastReward += tempReward
 
             self.recordStep(self.lastObservation, self.lastInfo, self.lastAction, self.lastReward, obs, info, self.done)

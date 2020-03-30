@@ -21,7 +21,7 @@ class DeepQAgent(Agent):
     stateIndices = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8} 
     doneKeys = [528, 530, 1024, 1026, 1028, 1032]
 
-    def __init__(self, stateSize= 32, actionSize= 38, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= .5, name= None):
+    def __init__(self, stateSize= 32, actionSize= 38, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= 1, name= None):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -69,7 +69,7 @@ class DeepQAgent(Agent):
         isActionable
             A boolean variable describing whether the Agent has control over the given state of the game
         """
-        if state['status'] not in [512, 514, 516]:
+        if info['status'] not in [512, 514, 516]:
             return False
         else:
             return True
