@@ -1,5 +1,6 @@
 import argparse, retro, threading, os, numpy, time
 from collections import deque
+from Discretizer import StreetFighter2Discretizer
 
 from tensorflow.python import keras
 from keras.models import load_model
@@ -139,8 +140,6 @@ class Agent():
             while not self.isActionableState(info):
                 obs, tempReward, self.done, info = self.environment.step(Agent.NO_MOVE)
                 self.lastReward += tempReward
-            print("Reward: ", self.lastReward)
-            input()
 
             self.recordStep(self.lastObservation, self.lastInfo, self.lastAction, self.lastReward, obs, info, self.done)
             self.lastObservation, self.lastInfo = [obs, info]                                      # Overwrite after recording step so Agent remembers the previous state that led to this one
@@ -206,7 +205,8 @@ class Agent():
         -------
         None
         """
-        self.environment = retro.make(self.game, state, use_restricted_actions= retro.Actions.DISCRETE)
+        self.environment = retro.make(self.game, state)
+        self.environment = StreetFighter2Discretizer(self.environment)
         self.environment.reset() 
         firstAction = 0                                                                            # The first action is always nothing in order for the Agent to get it's first set of infos before acting
         self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction)             # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data

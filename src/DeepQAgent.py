@@ -21,7 +21,7 @@ class DeepQAgent(Agent):
     stateIndices = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8} 
     doneKeys = [528, 530, 1024, 1026, 1028, 1032]
 
-    def __init__(self, stateSize= 32, actionSize= 126, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= .5, name= None):
+    def __init__(self, stateSize= 32, actionSize= 38, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= .5, name= None):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -117,8 +117,8 @@ class DeepQAgent(Agent):
         model.add(Dense(24, input_dim= self.stateSize, activation='relu'))
         model.add(Dense(48, activation='relu'))
         model.add(Dense(96, activation='relu'))
+        model.add(Dense(96, activation='relu'))
         model.add(Dense(48, activation='relu'))
-        model.add(Dense(24, activation='relu'))
         model.add(Dense(self.actionSize, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learningRate))
         print('Successfully initialized model')
