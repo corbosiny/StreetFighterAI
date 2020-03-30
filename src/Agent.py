@@ -140,6 +140,7 @@ class Agent():
             while not self.isActionableState(info):
                 obs, tempReward, self.done, info = self.environment.step(Agent.NO_MOVE)
                 if self.render: self.environment.render()
+                if realTime: time.sleep(Agent.FRAME_RATE)
                 self.lastReward += tempReward
 
             self.recordStep(self.lastObservation, self.lastInfo, self.lastAction, self.lastReward, obs, info, self.done)
