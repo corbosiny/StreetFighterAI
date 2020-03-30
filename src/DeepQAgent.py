@@ -12,14 +12,14 @@ from collections import deque
 class DeepQAgent(Agent):
     """An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2"""
     
-    EPSILON_MIN = .05                                         # Minimum exploration rate for a trained model
+    EPSILON_MIN = 0.1                                         # Minimum exploration rate for a trained model
     DEFAULT_EPSILON_DECAY = 0.90                              # How fast the exploration rate falls as training persists
-    DEFAULT_DISCOUNT_RATE = 0.90                              # How much future rewards influence the current decision of the model
+    DEFAULT_DISCOUNT_RATE = 0.95                              # How much future rewards influence the current decision of the model
     DEFAULT_LEARNING_RATE = 0.001
 
     # Mapping between player state values and their one hot encoding index
     stateIndices = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8} 
-    doneKeys = [1024, 1026, 1028, 1032]
+    doneKeys = [528, 530, 1024, 1026, 1028, 1032]
 
     def isActionableState(state):
         """Determines if the Agent has control over the game in it's current state(the Agent is in hit stun, ending lag, etc.)
@@ -52,6 +52,24 @@ class DeepQAgent(Agent):
             The resultant value of the sigmoid function applied to x
         """
         return 1 / (1 + math.exp(-x))
+
+    def logit(x):
+        """Applies the logit function to x
+
+        Parameters
+        ----------
+        x
+            Any real number
+        Returns
+        -------
+        activation score
+            The resultant value of the logit function applied to x
+        """
+        if x <= 0:
+            return -10
+        elif x >= 1:
+            return 10
+        return -math.log((1 / x) - 1)
 
     def __init__(self, stateSize= 32, actionSize= 12, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= 1, name= None):
         """Initializes the agent and the underlying neural network
@@ -162,7 +180,8 @@ class DeepQAgent(Agent):
                 [self.prepareNetworkInputs(step[Agent.STATE_INDEX]), 
                 step[Agent.ACTION_INDEX], 
                 step[Agent.REWARD_INDEX],
-                step[Agent.DONE_INDEX]])
+                step[Agent.DONE_INDEX],
+                self.prepareNetworkInputs(step[Agent.NEXT_STATE_INDEX])])
 
         return data
 
@@ -193,7 +212,7 @@ class DeepQAgent(Agent):
         # one hot encode enemy state
         # enemy_status - 512 if standing, 514 if crouching, 516 if jumping, 518 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
         oneHotEnemyState = [0] * len(DeepQAgent.stateIndices.keys())
-        oneHotEnemyState[DeepQAgent.stateIndices[step["enemy_status"]]] = 1
+        if step['enemy_status'] not in DeepQAgent.doneKeys: oneHotEnemyState[DeepQAgent.stateIndices[step["enemy_status"]]] = 1
         feature_vector += oneHotEnemyState
 
         # one hot encode enemy character
@@ -208,7 +227,7 @@ class DeepQAgent(Agent):
 
         # player_status - 512 if standing, 514 if crouching, 516 if jumping, 520 blocking, 522 if normal attack, 524 if special attack, 526 if hit stun or dizzy, 532 if thrown
         oneHotPlayerState = [0] * len(DeepQAgent.stateIndices.keys())
-        oneHotPlayerState[DeepQAgent.stateIndices[step["status"]]] = 1
+        if step['status'] not in DeepQAgent.doneKeys: oneHotPlayerState[DeepQAgent.stateIndices[step["status"]]] = 1
         feature_vector += oneHotPlayerState
 
         feature_vector = numpy.reshape(feature_vector, [1, self.stateSize])
@@ -229,19 +248,19 @@ class DeepQAgent(Agent):
             The input model now updated after this round of training on data
         """
         minibatch = random.sample(data, len(data))
-        for state, action, reward, done in minibatch:       
+        for state, action, reward, done, next_state in minibatch:       
             modelOutput = model.predict(state)[0]
-
-        #if not done:
-        #        target = (reward + self.gamma np.amax(self.model.predict(next_state)[0]))
          
+            if not done:
+                reward = (reward + self.gamma * DeepQAgent.logit(numpy.amax(self.model.predict(next_state)[0])))
+
             reward = DeepQAgent.sigmoid(reward)
             for index, buttonPress in enumerate(action):
                 if buttonPress: modelOutput[index] = reward
 
             modelOutput = numpy.reshape(modelOutput, [1, self.actionSize])
             model.fit(state, modelOutput, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
-        self.epsilon *= self.epsilonDecay
+        if self.epsilon > DeepQAgent.EPSILON_MIN: self.epsilon *= self.epsilonDecay
         return model
 
 if __name__ == "__main__":
