@@ -12,8 +12,8 @@ from collections import deque
 class DeepQAgent(Agent):
     """An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2"""
     
-    EPSILON_MIN = 0.1                                         # Minimum exploration rate for a trained model
-    DEFAULT_EPSILON_DECAY = 0.90                              # How fast the exploration rate falls as training persists
+    EPSILON_MIN = 0.05                                        # Minimum exploration rate for a trained model
+    DEFAULT_EPSILON_DECAY = 0.995                             # How fast the exploration rate falls as training persists
     DEFAULT_DISCOUNT_RATE = 0.95                              # How much future rewards influence the current decision of the model
     DEFAULT_LEARNING_RATE = 0.001
 
