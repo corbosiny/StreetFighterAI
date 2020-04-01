@@ -2,17 +2,20 @@ import argparse, retro, threading, os, numpy, random, math
 from Agent import Agent
 from LossHistory import LossHistory
 
+import tensorflow as tf
 from tensorflow.python import keras
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 from keras.models import load_model
+from keras import backend as K
+import keras.losses
 from collections import deque
 
 class DeepQAgent(Agent):
     """An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2"""
     
-    EPSILON_MIN = 0.05                                        # Minimum exploration rate for a trained model
+    EPSILON_MIN = 0.1                                         # Minimum exploration rate for a trained model
     DEFAULT_EPSILON_DECAY = 0.995                             # How fast the exploration rate falls as training persists
     DEFAULT_DISCOUNT_RATE = 0.95                              # How much future rewards influence the current decision of the model
     DEFAULT_LEARNING_RATE = 0.001
@@ -20,6 +23,17 @@ class DeepQAgent(Agent):
     # Mapping between player state values and their one hot encoding index
     stateIndices = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8} 
     doneKeys = [528, 530, 1024, 1026, 1028, 1032]
+
+    ACTION_BUTTONS = ['X', 'Y', 'Z', 'A', 'B', 'C']
+
+    def _huber_loss(y_true, y_pred, clip_delta=1.0):
+        error = y_true - y_pred
+        cond  = K.abs(error) <= clip_delta
+
+        squared_loss = 0.5 * K.square(error)
+        quadratic_loss = 0.5 * K.square(clip_delta) + clip_delta * (K.abs(error) - clip_delta)
+
+        return K.mean(tf.where(cond, squared_loss, quadratic_loss))
 
     def __init__(self, stateSize= 32, actionSize= 38, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= 1, name= None):
         """Initializes the agent and the underlying neural network
@@ -56,11 +70,14 @@ class DeepQAgent(Agent):
         self.lossHistory = LossHistory()
         super(DeepQAgent, self).__init__(game= game, render= render, load= load, name= name) 
 
-    def isActionableState(self, info):
+    def isActionableState(self, info, action = 0):
         """Determines if the Agent has control over the game in it's current state(the Agent is in hit stun, ending lag, etc.)
 
         Parameters
         ----------
+        action
+            The last action taken by the Agent
+
         info
             The RAM info of the current game state the Agent is presented with as a dictionary of keyworded values from Data.json
 
@@ -69,7 +86,12 @@ class DeepQAgent(Agent):
         isActionable
             A boolean variable describing whether the Agent has control over the given state of the game
         """
-        if info['status'] not in [512, 514, 516]:
+        action = self.environment.get_action_meaning(action)
+        if info['round_timer'] == 39208:
+            return False
+        elif info['status'] == 516 and any([button in action for button in DeepQAgent.ACTION_BUTTONS]):
+            return False
+        elif info['status'] not in [512, 514, 516]:
             return False
         else:
             return True
@@ -94,10 +116,12 @@ class DeepQAgent(Agent):
         if not self.isActionableState(info):
             return Agent.NO_MOVE
         elif numpy.random.rand() <= self.epsilon:
-            return self.getRandomMove()
+            move = self.getRandomMove()
+            return move
         else:
             stateData = self.prepareNetworkInputs(info)
             move = self.model.predict(stateData)[0]
+            #print('Q values: ', move)
             move = numpy.argmax(move)
             return move
 
@@ -114,13 +138,13 @@ class DeepQAgent(Agent):
             The initialized neural network model that Agent will interface with to generate game moves
         """
         model = Sequential()
-        model.add(Dense(24, input_dim= self.stateSize, activation='relu'))
-        model.add(Dense(48, activation='relu'))
+        model.add(Dense(48, input_dim= self.stateSize, activation='relu'))
+        model.add(Dense(96, activation='relu'))
         model.add(Dense(96, activation='relu'))
         model.add(Dense(96, activation='relu'))
         model.add(Dense(48, activation='relu'))
         model.add(Dense(self.actionSize, activation='linear'))
-        model.compile(loss='mse', optimizer=Adam(lr=self.learningRate))
+        model.compile(loss=DeepQAgent._huber_loss, optimizer=Adam(lr=self.learningRate))
         print('Successfully initialized model')
         return model
 
@@ -141,15 +165,13 @@ class DeepQAgent(Agent):
             The observation data is thrown out for this model for training
         """
         data = []
-        for index, step in enumerate(self.memory):
-            state = step[Agent.STATE_INDEX]
-            if self.isActionableState(state):
-                data.append(
-                [self.prepareNetworkInputs(step[Agent.STATE_INDEX]), 
-                step[Agent.ACTION_INDEX], 
-                step[Agent.REWARD_INDEX],
-                step[Agent.DONE_INDEX],
-                self.prepareNetworkInputs(step[Agent.NEXT_STATE_INDEX])])
+        for step in self.memory:
+            data.append(
+            [self.prepareNetworkInputs(step[Agent.STATE_INDEX]), 
+            step[Agent.ACTION_INDEX], 
+            step[Agent.REWARD_INDEX],
+            step[Agent.DONE_INDEX],
+            self.prepareNetworkInputs(step[Agent.NEXT_STATE_INDEX])])
 
         return data
 
@@ -216,19 +238,24 @@ class DeepQAgent(Agent):
             The input model now updated after this round of training on data
         """
         minibatch = random.sample(data, len(data))
-        for state, action, reward, done, next_state in minibatch:       
+        self.lossHistory.losses_clear()
+        for state, action, reward, done, next_state in minibatch:     
             modelOutput = model.predict(state)[0]
-         
             if not done:
-                reward = (reward + self.gamma * numpy.amax(self.model.predict(next_state)[0]))
+                reward = (reward + self.gamma * numpy.amax(model.predict(next_state)[0]))
 
             modelOutput[action] = reward
-
             modelOutput = numpy.reshape(modelOutput, [1, self.actionSize])
             model.fit(state, modelOutput, epochs= 1, verbose= 0, callbacks= [self.lossHistory])
 
         if self.epsilon > DeepQAgent.EPSILON_MIN: self.epsilon *= self.epsilonDecay
         return model
+
+
+from keras.utils.generic_utils import get_custom_objects
+
+loss = DeepQAgent._huber_loss
+get_custom_objects().update({"_huber_loss": loss})
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description= 'Processes agent parameters.')

@@ -5,8 +5,14 @@ class LossHistory(keras.callbacks.Callback):
        1. initialize a LossHistory object inside your agent
        2. and put callbacks= [self.lossHistory] in the model.fit() call
     """
-    def on_train_begin(self, logs={}):
+    def __init__(self):
         self.losses = []
+
+    def on_train_begin(self, logs={}):
+        pass
 
     def on_batch_end(self, batch, logs={}):
         self.losses.append(logs.get('loss'))
+
+    def losses_clear(self):
+        self.losses = []

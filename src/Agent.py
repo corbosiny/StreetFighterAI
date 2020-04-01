@@ -81,10 +81,8 @@ class Agent():
         else: self.name = name
 
         if self.__class__.__name__ != "Agent":
-            if not load: 
-                self.model = self.initializeNetwork()    								           # Only invoked in child subclasses, Agent has no network
-            else: 
-                self.model = self.loadModel()
+            self.model = self.initializeNetwork()    								            # Only invoked in child subclasses, Agent has no network
+            if load: self.loadModel()
 
     def train(self, review= True, episodes= 1, realTime= False):
         """Causes the Agent to run through each save state fight and record the results to review after
@@ -108,7 +106,7 @@ class Agent():
             print('Starting episode', episodeNumber)
             self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
             for state in Agent.getStates():
-                self.play(state= "chunli", realTime= realTime)
+                self.play(state= state, realTime= realTime)
             
             if self.__class__.__name__ != "Agent" and review == True: 
                 data = self.prepareMemoryForTraining(self.memory)
@@ -136,8 +134,7 @@ class Agent():
             
             self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
             obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
-
-            while not self.isActionableState(info):
+            while not self.isActionableState(info, action = self.lastAction):
                 obs, tempReward, self.done, info = self.environment.step(Agent.NO_MOVE)
                 if self.render: self.environment.render()
                 if realTime: time.sleep(Agent.FRAME_RATE)
@@ -213,6 +210,8 @@ class Agent():
         firstAction = 0                                                                            # The first action is always nothing in order for the Agent to get it's first set of infos before acting
         self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction)             # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
         self.done = False
+        while not self.isActionableState(self.lastInfo):
+            self.lastObservation, _, _, self.lastInfo = self.environment.step(Agent.NO_MOVE)
 
     def loadModel(self):
         """Loads in pretrained model object ../models/{Instance_Name}Model
@@ -225,9 +224,8 @@ class Agent():
         model
             The loaded model of the agent from the specified file
         """
-        model = load_model(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
+        self.model.load_weights(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
         print("Model successfully loaded")
-        return model
 
     def saveModel(self):
         """Saves the currently trained model in the default naming convention ../models/{Instance_Name}Model
@@ -239,12 +237,11 @@ class Agent():
         -------
         None
         """
-        self.model.save(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
+        self.model.save_weights(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
         print('Checkpoint established. model successfully saved')
         with open(os.path.join(Agent.DEFAULT_LOGS_DIR_PATH, self.getLogsName()), 'a+') as file:
-            for loss in self.lossHistory.losses:
-                file.write(str(loss))
-                file.write('\n')
+            file.write(str(sum(self.lossHistory.losses) / len(self.lossHistory.losses)))
+            file.write('\n')
 
     def getModelName(self):
         """Returns the formatted model name for the current model"""
@@ -257,11 +254,14 @@ class Agent():
     ### End of object methods
 
     ### Abstract methods for the child Agent to implement
-    def isActionableState(self, info):
+    def isActionableState(self, info, action = 0):
         """Determines if the Agent has control over the game in it's current state(the Agent is in hit stun, ending lag, etc.)
 
         Parameters
         ----------
+        action
+            The last action taken by the Agent
+
         info
             The RAM info of the current game state the Agent is presented with as a dictionary of keyworded values from Data.json
 
