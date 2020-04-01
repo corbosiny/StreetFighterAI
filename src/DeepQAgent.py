@@ -18,7 +18,7 @@ class DeepQAgent(Agent):
     EPSILON_MIN = 0.1                                         # Minimum exploration rate for a trained model
     DEFAULT_EPSILON_DECAY = 0.995                             # How fast the exploration rate falls as training persists
     DEFAULT_DISCOUNT_RATE = 0.95                              # How much future rewards influence the current decision of the model
-    DEFAULT_LEARNING_RATE = 0.001
+    DEFAULT_LEARNING_RATE = 0.01
 
     # Mapping between player state values and their one hot encoding index
     stateIndices = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8} 
@@ -137,12 +137,23 @@ class DeepQAgent(Agent):
         model
             The initialized neural network model that Agent will interface with to generate game moves
         """
+        # model = Sequential()
+        # model.add(Dense(48, input_dim= self.stateSize, activation='relu'))
+        # model.add(Dense(96, activation='relu'))
+        # model.add(Dense(96, activation='relu'))
+        # model.add(Dense(96, activation='relu'))
+        # model.add(Dense(48, activation='relu'))
+        # model.add(Dense(self.actionSize, activation='linear'))
+        # model.compile(loss=DeepQAgent._huber_loss, optimizer=Adam(lr=self.learningRate))
+
         model = Sequential()
-        model.add(Dense(48, input_dim= self.stateSize, activation='relu'))
-        model.add(Dense(96, activation='relu'))
-        model.add(Dense(96, activation='relu'))
-        model.add(Dense(96, activation='relu'))
-        model.add(Dense(48, activation='relu'))
+        model.add(Dense(256, input_dim= self.stateSize, activation='relu'))
+        model.add(Dense(256, activation='relu'))
+        model.add(Dense(512, activation='relu'))
+        model.add(Dense(1024, activation='relu'))
+        model.add(Dense(512, activation='relu'))
+        model.add(Dense(256, activation='relu'))
+        model.add(Dense(256, activation='relu'))
         model.add(Dense(self.actionSize, activation='linear'))
         model.compile(loss=DeepQAgent._huber_loss, optimizer=Adam(lr=self.learningRate))
         print('Successfully initialized model')
