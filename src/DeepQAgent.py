@@ -253,7 +253,6 @@ class DeepQAgent(Agent):
 
 
 from keras.utils.generic_utils import get_custom_objects
-
 loss = DeepQAgent._huber_loss
 get_custom_objects().update({"_huber_loss": loss})
 
