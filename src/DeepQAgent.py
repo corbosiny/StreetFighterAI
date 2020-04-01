@@ -17,7 +17,7 @@ class DeepQAgent(Agent):
     
     EPSILON_MIN = 0.1                                         # Minimum exploration rate for a trained model
     DEFAULT_EPSILON_DECAY = 0.995                             # How fast the exploration rate falls as training persists
-    DEFAULT_DISCOUNT_RATE = 0.985                              # How much future rewards influence the current decision of the model
+    DEFAULT_DISCOUNT_RATE = 0.99                              # How much future rewards influence the current decision of the model
     DEFAULT_LEARNING_RATE = 0.001
 
     # Mapping between player state values and their one hot encoding index
@@ -65,7 +65,6 @@ class DeepQAgent(Agent):
         self.gamma = DeepQAgent.DEFAULT_DISCOUNT_RATE         # discount rate
         if load: self.epsilon = DeepQAgent.EPSILON_MIN        # If the model is already trained lower the exploration rate
         else: self.epsilon = epsilon                          # If the model is not trained set a high initial exploration rate
-        self.epsilon = epsilon
         self.epsilonDecay = DeepQAgent.DEFAULT_EPSILON_DECAY  # How fast the exploration rate falls as training persists
         self.learningRate = DeepQAgent.DEFAULT_LEARNING_RATE 
         self.lossHistory = LossHistory()
