@@ -16,9 +16,9 @@ class DeepQAgent(Agent):
     """An agent that implements the Deep Q Neural Network Reinforcement Algorithm to learn street fighter 2"""
     
     EPSILON_MIN = 0.1                                         # Minimum exploration rate for a trained model
-    DEFAULT_EPSILON_DECAY = 0.995                             # How fast the exploration rate falls as training persists
-    DEFAULT_DISCOUNT_RATE = 0.99                              # How much future rewards influence the current decision of the model
-    DEFAULT_LEARNING_RATE = 0.001
+    DEFAULT_EPSILON_DECAY = 0.999                             # How fast the exploration rate falls as training persists
+    DEFAULT_DISCOUNT_RATE = 0.98                              # How much future rewards influence the current decision of the model
+    DEFAULT_LEARNING_RATE = 0.0001
 
     # Mapping between player state values and their one hot encoding index
     stateIndices = {512 : 0, 514 : 1, 516 : 2, 518 : 3, 520 : 4, 522 : 5, 524 : 6, 526 : 7, 532 : 8} 
@@ -163,12 +163,15 @@ class DeepQAgent(Agent):
         model.add(Dense(4096, input_dim= self.stateSize, activation='relu'))
         model.add(Dense(4096, activation='relu'))
         model.add(Dense(2048, activation='relu'))
+        model.add(Dense(2048, activation='relu'))
+        model.add(Dense(1024, activation='relu'))
         model.add(Dense(1024, activation='relu'))
         model.add(Dense(512, activation='relu'))
         model.add(Dense(256, activation='relu'))
         model.add(Dense(128, activation='relu'))
         model.add(Dense(self.actionSize, activation='linear'))
         model.compile(loss=DeepQAgent._huber_loss, optimizer=Adam(lr=self.learningRate))
+
         print('Successfully initialized model')
         return model
 
