@@ -1,6 +1,5 @@
 import argparse, retro, threading, os, numpy, time
 from collections import deque
-from Discretizer import StreetFighter2Discretizer
 
 from tensorflow.python import keras
 from keras.models import load_model
@@ -9,9 +8,6 @@ class Agent():
     """ Abstract class that user created Agents should inherit from.
         Contains helper functions for launching training environments and generating training data sets.
     """
-
-    ### Static Variables 
-    NO_MOVE = 0                                                                                    # Place holder for whenever the Agent doesn't want to put in any inputs
 
     # The indices representing what each index in a training point represent
     OBSERVATION_INDEX = 0                                                                          # The current display image of the game state
@@ -24,15 +20,12 @@ class Agent():
 
     MAX_DATA_LENGTH = 50000
 
-    FRAME_RATE = 1 / 160                                                                           # The time between frames if real time is enabled
-
     DEFAULT_MODELS_DIR_PATH = '../models'
     DEFAULT_LOGS_DIR_PATH = '../logs'
     
     ### End of static variables 
 
     ### Static Methods
-
     def getStates():
         """Static method that gets and returns a list of all the save state names that can be loaded
 
@@ -53,17 +46,11 @@ class Agent():
 
     ### Object methods
 
-    def __init__(self, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, name= None):
+    def __init__(self, load= False, name= None):
         """Initializes the agent and the underlying neural network
 
         Parameters
         ----------
-        game
-            A String of the game the Agent will be making an environment of, defaults to StreetFighterIISpecialChampionEdition-Genesis
-
-        render
-            A boolean flag that specifies whether or not to visually render the game while the Agent is playing
-        
         load
             A boolean flag that specifies whether to initialize the model from scratch or load in a pretrained model
 
@@ -75,8 +62,6 @@ class Agent():
         -------
         None
         """
-        self.game = game
-        self.render = render
         if name is None: self.name = self.__class__.__name__
         else: self.name = name
 
@@ -84,68 +69,11 @@ class Agent():
             self.model = self.initializeNetwork()    								            # Only invoked in child subclasses, Agent has no network
             if load: self.loadModel()
 
-    def train(self, review= True, episodes= 1, realTime= False):
-        """Causes the Agent to run through each save state fight and record the results to review after
+    def prepareForFight(self):
+        self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
 
-        Parameters
-        ----------
-        review
-            A boolean variable that tells the Agent whether or not it should train after running through all the save states, true means train
 
-        episodes
-            An integer that represents the number of game play episodes to go through before training, once through the roster is one episode
-
-        realTime
-            A boolean flag used to slow the game down to approximately real game speed to make viewing for humans easier, defaults to false
-
-        Returns
-        -------
-        None
-        """
-        for episodeNumber in range(episodes):
-            print('Starting episode', episodeNumber)
-            self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
-            for state in Agent.getStates():
-                self.play(state= state, realTime= realTime)
-            
-            if self.__class__.__name__ != "Agent" and review == True: 
-                data = self.prepareMemoryForTraining(self.memory)
-                self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn
-                self.saveModel()
-
-    def play(self, state, realTime= False):
-        """The Agent will load the specified save state and play through it until finished, recording the fight for training
-
-        Parameters
-        ----------
-        state
-            A string of the name of the save state the Agent will be playing
-
-        realTime
-            A boolean flag used to slow the game down to approximately real game speed to make viewing for humans easier, defaults to false
-
-        Returns
-        -------
-        None
-        """
-        self.initEnvironment(state)
-        while not self.done:
-            if self.render: self.environment.render()
-            
-            self.lastAction = self.getMove(self.lastObservation, self.lastInfo)
-            obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
-            while not self.isActionableState(info, action = self.lastAction):
-                obs, tempReward, self.done, info = self.environment.step(Agent.NO_MOVE)
-                if self.render: self.environment.render()
-                if realTime: time.sleep(Agent.FRAME_RATE)
-                self.lastReward += tempReward
-
-            self.recordStep(self.lastObservation, self.lastInfo, self.lastAction, self.lastReward, obs, info, self.done)
-            self.lastObservation, self.lastInfo = [obs, info]                                      # Overwrite after recording step so Agent remembers the previous state that led to this one
-            if realTime: time.sleep(Agent.FRAME_RATE)
-        self.environment.close()
-
-    def getRandomMove(self):
+    def getRandomMove(self, action_space):
         """Returns a random set of button inputs
 
         Parameters
@@ -156,7 +84,7 @@ class Agent():
         -------
             move a binary array of random button press combinations within the environments action space
         """
-        move = self.environment.action_space.sample()                                              # Take random sample of all the button press inputs the Agent could make
+        move = action_space.sample()                                              # Take random sample of all the button press inputs the Agent could make
         return move                                
 
     def recordStep(self, observation, state, action, reward, nextObservation, nextState, done):
@@ -192,26 +120,10 @@ class Agent():
         """
         self.memory.append((observation, state, action, reward, nextObservation, nextState, done)) # Steps are stored as tuples to avoid unintended changes
 
-    def initEnvironment(self, state):
-        """Initializes a game environment that the Agent can play a save state in
-
-        Parameters
-        ----------
-        state
-            A string of the name of the save state to load into the environment
-
-        Returns
-        -------
-        None
-        """
-        self.environment = retro.make(self.game, state)
-        self.environment = StreetFighter2Discretizer(self.environment)
-        self.environment.reset() 
-        firstAction = 0                                                                            # The first action is always nothing in order for the Agent to get it's first set of infos before acting
-        self.lastObservation, _, _, self.lastInfo = self.environment.step(firstAction)             # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
-        self.done = False
-        while not self.isActionableState(self.lastInfo):
-            self.lastObservation, _, _, self.lastInfo = self.environment.step(Agent.NO_MOVE)
+    def reviewFight(self):
+        data = self.prepareMemoryForTraining(self.memory)
+        self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn
+        self.saveModel()
 
     def loadModel(self):
         """Loads in pretrained model object ../models/{Instance_Name}Model
@@ -254,25 +166,7 @@ class Agent():
     ### End of object methods
 
     ### Abstract methods for the child Agent to implement
-    def isActionableState(self, info, action = 0):
-        """Determines if the Agent has control over the game in it's current state(the Agent is in hit stun, ending lag, etc.)
-
-        Parameters
-        ----------
-        action
-            The last action taken by the Agent
-
-        info
-            The RAM info of the current game state the Agent is presented with as a dictionary of keyworded values from Data.json
-
-        Returns
-        -------
-        isActionable
-            A boolean variable describing whether the Agent has control over the given state of the game
-        """
-        return True
-
-    def getMove(self, obs, info):
+    def getMove(self, action_space, obs, info):
         """Returns a set of button inputs generated by the Agent's network after looking at the current observation
 
         Parameters
@@ -289,7 +183,7 @@ class Agent():
         move
             A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
-        return self.getRandomMove()
+        return self.getRandomMove(action_space)
 
     def initializeNetwork(self):
         """To be implemented in child class, should initialize or load in the Agent's neural network
@@ -340,9 +234,21 @@ class Agent():
 
     ### End of Abstract methods
 
+def testMain(agent, render= False):
+    env = retro.make(game= 'StreetFighterIISpecialChampionEdition-Genesis',  state= "chunli")
+    obs, info = env.reset(), None
+    while True:
+        action = agent.getMove(env.action_space, obs, info)
+        obs, _, done, info = env.step(action)
+        env.render()
+        if done:
+            obs = env.reset()
+    env.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Processes agent parameters.')
     parser.add_argument('-r', '--render', action= 'store_true', help= 'Boolean flag for if the user wants the game environment to render during play')
     args = parser.parse_args()
-    randomAgent = Agent(render= args.render)
-    randomAgent.train()
+    randomAgent = Agent()
+    testMain(randomAgent, args.render)
