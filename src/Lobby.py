@@ -1,16 +1,20 @@
 import argparse, retro, os, time
-from Discretizer import StreetFighter2Discretizer
 from enum import Enum
 
+# Used incase too many players are added to the lobby
 class Lobby_Full_Exception(Exception):
     pass
 
+# determines how many players the lobby will request moves from before updating the game state
 class Lobby_Modes(Enum):
     SINGLE_PLAYER = 1
     TWO_PLAYER = 2
 
 class Lobby():
-    """ """
+    """A class that handles all of the necessary book keeping for running the gym environment.
+       A number of players are added and a game state is selected and the lobby will handle
+       piping in the player moves and keeping track of some relevant game information.
+    """
 
     ### Static Variables 
 
@@ -58,6 +62,9 @@ class Lobby():
         render
             A boolean flag that specifies whether or not to visually render the game while a match is being played
 
+        mode
+            An enum type that describes whether this lobby is for single player or two player matches
+
         Returns
         -------
         None
@@ -80,7 +87,6 @@ class Lobby():
         None
         """
         self.environment = retro.make(game= self.game, state= state, players= self.mode.value)
-        #self.environment = StreetFighter2Discretizer(self.environment)
         self.environment.reset()                                                               
         self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)                   # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
         self.done = False
@@ -88,6 +94,18 @@ class Lobby():
             self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)
 
     def addPlayer(self, newPlayer):
+        """Adds a new player to the player list of active players in this lobby
+           will throw a Lobby_Full_Exception if the lobby is full
+
+        Parameters
+        ----------
+        newPlayer
+            An agent object that will be added to the lobby and moves will be requested from when the lobby starts
+
+        Returns
+        -------
+        None
+        """
         for playerNum, player in enumerate(self.players):
             if player is None:
                 self.players[playerNum] = newPlayer
@@ -96,6 +114,16 @@ class Lobby():
         raise Lobby_Full_Exception("Lobby has already reached the maximum number of players")
 
     def clearLobby(self):
+        """Clears the players currently inside the lobby's play queue
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
         self.players = [None] * self.mode.value
 
     def isActionableState(self, info, action = 0):
@@ -103,11 +131,11 @@ class Lobby():
 
         Parameters
         ----------
-        action
-            The last action taken by the Agent
-
         info
             The RAM info of the current game state the Agent is presented with as a dictionary of keyworded values from Data.json
+
+        action
+            The last action taken by the Agent
 
         Returns
         -------
@@ -124,7 +152,7 @@ class Lobby():
         else:
              return True
 
-    def play(self, state, realTime= False):
+    def play(self, state):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
 
         Parameters
@@ -132,32 +160,77 @@ class Lobby():
         state
             A string of the name of the save state the Agent will be playing
 
-        realTime
-            A boolean flag used to slow the game down to approximately real game speed to make viewing for humans easier, defaults to false
-
         Returns
         -------
         None
         """
         self.initEnvironment(state)
         while not self.done:
-            if self.render: self.environment.render()
-            
-            self.lastAction = self.players[0].getMove(self.environment.action_space, self.lastObservation, self.lastInfo)
-            obs, self.lastReward, self.done, info = self.environment.step(self.lastAction)
-            while not self.isActionableState(info, action = self.lastAction):
-                obs, tempReward, self.done, info = self.environment.step(Lobby.NO_ACTION)
-                if self.render: self.environment.render()
-                if realTime: time.sleep(Lobby.FRAME_RATE)
-                self.lastReward += tempReward
 
-            self.players[0].recordStep(self.lastObservation, self.lastInfo, self.lastAction, self.lastReward, obs, info, self.done)
-            self.lastObservation, self.lastInfo = [obs, info]                               # Overwrite after recording step so Agent remembers the previous state that led to this one
-            if realTime: time.sleep(Lobby.FRAME_RATE)
+            # action is an iterable object that contains an input buffer representing frame by frame inputs
+            # the lobby will run through these inputs and enter each one on the appropriate frames
+            self.lastAction = self.players[0].getMove(self.environment.action_space, self.lastObservation, self.lastInfo)
+
+            # Fully execute frame object and then wait for next actionable state
+            self.lastReward = 0
+            info = self.enterFrameInputs()
+            info, obs = self.waitForNextActionableState(info)
+
+            # Record Results
+            self.players[0].recordStep(self.lastObservation, self.lastInfo, self.lastReward, obs, info, self.done)
+            self.lastObservation, self.lastInfo = [obs, info]                   # Overwrite after recording step so Agent remembers the previous state that led to this one
+        
         self.environment.close()
         self.environment.viewer.close()
 
-    def executeTrainingRun(self, review= True, episodes= 1, realTime= False):
+    def enterFrameInputs(self):
+        """Enter each of the frame inputs in the input buffer inside the last action object supplied by the Agent
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        info
+            The ram information received from the emulator after the last frame input has been entered    
+
+        """
+        for frame in self.lastAction: 
+            _, tempReward, self.done, info = self.environment.step(frame)
+            if self.render: 
+                self.environment.render()
+                time.sleep(Lobby.FRAME_RATE)
+            self.lastReward += tempReward
+        return info
+
+    def waitForNextActionableState(self, info):
+        """Wait for the next game state where the Agent can make an action
+
+        Parameters
+        ----------
+        info
+            The ram info received from the emulator of the last frame of the game
+
+        Returns
+        -------
+        info
+            The ram info received from the emulator after finally getting to an actionable state
+
+        obs
+            The image buffer data received from the emulator after finally getting to an actionable state
+
+        """
+        while not self.isActionableState(info, action= self.lastAction.frames[-1]):
+            obs, tempReward, self.done, info = self.environment.step(Lobby.NO_ACTION)
+            if self.render: self.environment.render()
+            if self.render:
+                self.environment.render()
+                time.sleep(Lobby.FRAME_RATE)
+            self.lastReward += tempReward
+        return info, obs
+
+    def executeTrainingRun(self, review= True, episodes= 1):
         """The lobby will load each of the saved states to generate data for the agent to train on
             Note: This will only work for single player mode
 
@@ -169,22 +242,20 @@ class Lobby():
         episodes
             An integer that represents the number of game play episodes to go through before training, once through the roster is one episode
 
-        realTime
-            A boolean flag used to slow the game down to approximately real game speed to make viewing for humans easier, defaults to false
-
         Returns
         -------
         None
         """
         for episodeNumber in range(episodes):
             print('Starting episode', episodeNumber)
-            self.players[0].prepareForFight()                                       # Double ended queue that stores states during the game
             for state in Lobby.getStates():
-                self.play(state= state, realTime= realTime)
+                self.play(state= state)
             
             if self.players[0].__class__.__name__ != "Agent" and review == True: 
                 self.players[0].reviewFight()
 
+
+# Makes an example lobby and has a random agent play through an example training run
 if __name__ == "__main__":
     testLobby = Lobby(render= True)
     from Agent import Agent

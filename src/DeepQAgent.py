@@ -35,7 +35,7 @@ class DeepQAgent(Agent):
 
         return K.mean(tf.where(cond, squared_loss, quadratic_loss))
 
-    def __init__(self, stateSize= 32, actionSize= 38, game= 'StreetFighterIISpecialChampionEdition-Genesis', render= False, load= False, epsilon= 1, name= None):
+    def __init__(self, stateSize= 32, actionSize= 38, game= 'StreetFighterIISpecialChampionEdition-Genesis', load= False, epsilon= 1, name= None):
         """Initializes the agent and the underlying neural network
 
         Parameters
@@ -48,9 +48,6 @@ class DeepQAgent(Agent):
 
         game
             A String of the game the Agent will be making an environment of, defaults to StreetFighterIISpecialChampionEdition-Genesis
-
-        render
-            A boolean that specifies whether or not to visually render the game while the Agent is playing
 
         name
             A string representing the name of the agent that will be used when saving the model and training logs
@@ -290,5 +287,5 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--episodes', type= int, default= 10, help= 'Intger representing the number of training rounds to go through, checkpoints are made at the end of each episode')
     parser.add_argument('-n', '--name', type= str, default= None, help= 'Name of the instance that will be used when saving the model or it\'s training logs')
     args = parser.parse_args()
-    qAgent = DeepQAgent(render= args.render, load= args.load, name= args.name)
+    qAgent = DeepQAgent(load= args.load, name= args.name)
     qAgent.train(review= True, episodes= args.episodes)

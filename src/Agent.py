@@ -18,10 +18,10 @@ class Agent():
     NEXT_STATE_INDEX = 5                                                                           # The next state that the action led to
     DONE_INDEX = 6                                                                                 # A flag signifying if the game is over
 
-    MAX_DATA_LENGTH = 50000
+    MAX_DATA_LENGTH = 50000                                                                        # Max number of decision frames the Agent can remember from a fight, average is about 2000 per fight
 
-    DEFAULT_MODELS_DIR_PATH = '../models'
-    DEFAULT_LOGS_DIR_PATH = '../logs'
+    DEFAULT_MODELS_DIR_PATH = '../models'                                                          # Default path to the dir where the trained models are saved for later access
+    DEFAULT_LOGS_DIR_PATH = '../logs'                                                              # Default path to the dir where training logs are saved for user review
     
     ### End of static variables 
 
@@ -41,6 +41,23 @@ class Agent():
         files = os.listdir('../StreetFighterIISpecialChampionEdition-Genesis')
         states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
         return states
+
+    def convertMoveToFrameInputs(move):
+        """Converts the desired move into a series of frame inputs in order to acomplish that move
+
+        Parameters
+        ----------
+        move
+            enum type named after the move to be performed
+            is used as the key into the move to inputs dic
+
+        Returns
+        -------
+
+        frameInputs
+            An iterable frame inputs object containing the frame by frame input buffer for the move
+        """
+        pass
 
     ### End of static methods
 
@@ -64,12 +81,14 @@ class Agent():
         """
         if name is None: self.name = self.__class__.__name__
         else: self.name = name
+        self.prepareForNextFight()
 
         if self.__class__.__name__ != "Agent":
             self.model = self.initializeNetwork()    								            # Only invoked in child subclasses, Agent has no network
             if load: self.loadModel()
 
-    def prepareForFight(self):
+    def prepareForNextFight(self):
+        """Clears the memory of the fighter so it can prepare to record the next fight"""
         self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
 
 
@@ -78,16 +97,18 @@ class Agent():
 
         Parameters
         ----------
-        None
+            action_space
+                The list of possible actions the Agent can take in the environment
 
         Returns
         -------
-            move a binary array of random button press combinations within the environments action space
+            move 
+                A random selection from the action_space of the environment
         """
         move = action_space.sample()                                              # Take random sample of all the button press inputs the Agent could make
         return move                                
 
-    def recordStep(self, observation, state, action, reward, nextObservation, nextState, done):
+    def recordStep(self, observation, state, reward, nextObservation, nextState, done):
         """Records the last observation, action, reward and the resultant observation about the environment for later training
         Parameters
         ----------
@@ -97,10 +118,6 @@ class Agent():
         state
             The state the Agent was presented with before it took an action.
             A dictionary containing tagged RAM data
-
-        action
-            A multivariable array where each index represents a button press
-            A one means the button was pressed, 0 means it was not
 
         reward
             The reward the agent received for taking that action
@@ -118,12 +135,14 @@ class Agent():
         -------
         None
         """
-        self.memory.append((observation, state, action, reward, nextObservation, nextState, done)) # Steps are stored as tuples to avoid unintended changes
+        self.memory.append((observation, state, self.lastAction, reward, nextObservation, nextState, done)) # Steps are stored as tuples to avoid unintended changes
 
     def reviewFight(self):
+        """The Agent goes over the data collected from it's last fight, prepares it, and then runs through one epoch of training on the data"""
         data = self.prepareMemoryForTraining(self.memory)
         self.model = self.trainNetwork(data, self.model)   		                           # Only invoked in child subclasses, Agent does not learn
         self.saveModel()
+        self.prepareForNextFight()
 
     def loadModel(self):
         """Loads in pretrained model object ../models/{Instance_Name}Model
@@ -171,6 +190,9 @@ class Agent():
 
         Parameters
         ----------
+        action_space
+            The list of possible moves the Agent can take in this environment
+
         obs
             The observation of the current environment, 2D numpy array of pixel values
 
@@ -183,7 +205,10 @@ class Agent():
         move
             A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
-        return self.getRandomMove(action_space)
+        move = self.getRandomMove(action_space)
+        self.lastAction = move
+        frameInputs = Agent.convertMoveToFrameInputs(move)
+        return frameInputs
 
     def initializeNetwork(self):
         """To be implemented in child class, should initialize or load in the Agent's neural network
@@ -234,6 +259,10 @@ class Agent():
 
     ### End of Abstract methods
 
+
+
+# Test code where an example environment is created and an Agent plays the game by randomly sampling the action space at each decision
+# The user can specify the -r flag to render the test envionrments
 def testMain(agent, render= False):
     env = retro.make(game= 'StreetFighterIISpecialChampionEdition-Genesis',  state= "chunli")
     obs, info = env.reset(), None
@@ -244,7 +273,6 @@ def testMain(agent, render= False):
         if done:
             obs = env.reset()
     env.close()
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Processes agent parameters.')
