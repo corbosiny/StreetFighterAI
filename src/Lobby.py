@@ -1,5 +1,6 @@
 import argparse, retro, os, time
 from enum import Enum
+from Discretizer import StreetFighter2Discretizer
 
 # Used incase too many players are added to the lobby
 class Lobby_Full_Exception(Exception):
@@ -19,7 +20,8 @@ class Lobby():
     ### Static Variables 
 
     # Variables relating to monitoring state and contorls
-    NO_ACTION = [0] * 12
+    NO_ACTION = 0
+    MOVEMENT_BUTTONS = ['LEFT', 'RIGHT', 'DOWN', 'UP']
     ACTION_BUTTONS = ['X', 'Y', 'Z', 'A', 'B', 'C']
     ROUND_TIMER_NOT_STARTED = 39208
     STANDING_STATUS = 512
@@ -27,8 +29,12 @@ class Lobby():
     JUMPING_STATUS = 516
     ACTIONABLE_STATUSES = [STANDING_STATUS, CROUCHING_STATUS, JUMPING_STATUS]
 
+    # Variables keeping track of the delay between these movement inputs and
+    # when the next button inputs are picked ups
+    JUMP_LAG = 4
+
     FRAME_RATE = 1 / 115                                                                           # The time between frames if real time is enabled
-    
+
     ### End of static variables 
 
     ### Static Methods
@@ -40,7 +46,7 @@ class Lobby():
         ----------
         None
 
-        Returns
+        ReturnsStreetFighter2Discretizer
         -------
         states
             A list of strings where each string is the name of a different save state
@@ -87,8 +93,11 @@ class Lobby():
         None
         """
         self.environment = retro.make(game= self.game, state= state, players= self.mode.value)
+        self.environment = StreetFighter2Discretizer(self.environment)
         self.environment.reset()                                                               
         self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)                   # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
+        self.lastAction = [Lobby.NO_ACTION]
+        self.currentJumpFrame = 0
         self.done = False
         while not self.isActionableState(self.lastInfo, Lobby.NO_ACTION):
             self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)
@@ -145,12 +154,16 @@ class Lobby():
         action = self.environment.get_action_meaning(action)
         if info['round_timer'] == Lobby.ROUND_TIMER_NOT_STARTED:                                                       
             return False
+        elif info['status'] == Lobby.JUMPING_STATUS and self.currentJumpFrame <= Lobby.JUMP_LAG:
+            self.currentJumpFrame += 1
+            return False
         elif info['status'] == Lobby.JUMPING_STATUS and any([button in action for button in Lobby.ACTION_BUTTONS]):   # Have to manually track if we are in a jumping attack
-             return False
+            return False
         elif info['status'] not in Lobby.ACTIONABLE_STATUSES:                                                         # Standing, Crouching, or Jumping 
              return False
         else:
-             return True
+            if info['status'] != Lobby.JUMPING_STATUS and self.currentJumpFrame > 0: self.currentJumpFrame = 0 
+            return True
 
     def play(self, state):
         """The Agent will load the specified save state and play through it until finished, recording the fight for training
@@ -169,12 +182,12 @@ class Lobby():
 
             # action is an iterable object that contains an input buffer representing frame by frame inputs
             # the lobby will run through these inputs and enter each one on the appropriate frames
-            self.lastAction = self.players[0].getMove(self.environment.action_space, self.lastObservation, self.lastInfo)
+            self.lastAction = self.players[0].getMove(self.lastObservation, self.lastInfo)
 
             # Fully execute frame object and then wait for next actionable state
             self.lastReward = 0
-            info = self.enterFrameInputs()
-            info, obs = self.waitForNextActionableState(info)
+            info, obs = self.enterFrameInputs()
+            info, obs = self.waitForNextActionableState(info, obs)
 
             # Record Results
             self.players[0].recordStep(self.lastObservation, self.lastInfo, self.lastReward, obs, info, self.done)
@@ -195,16 +208,19 @@ class Lobby():
         info
             The ram information received from the emulator after the last frame input has been entered    
 
+        obs
+            The image buffer data received from the emulator after entering all input frames
         """
-        for frame in self.lastAction: 
-            _, tempReward, self.done, info = self.environment.step(frame)
+        for frame in self.lastAction:
+            obs, tempReward, self.done, info = self.environment.step(frame)
+            if self.done: return info, obs
             if self.render: 
                 self.environment.render()
                 time.sleep(Lobby.FRAME_RATE)
             self.lastReward += tempReward
-        return info
+        return info, obs
 
-    def waitForNextActionableState(self, info):
+    def waitForNextActionableState(self, info, obs):
         """Wait for the next game state where the Agent can make an action
 
         Parameters
@@ -212,6 +228,9 @@ class Lobby():
         info
             The ram info received from the emulator of the last frame of the game
 
+        obs
+            The image buffer received from the emulator starting the frame after that last set of inputs
+            
         Returns
         -------
         info
@@ -221,8 +240,9 @@ class Lobby():
             The image buffer data received from the emulator after finally getting to an actionable state
 
         """
-        while not self.isActionableState(info, action= self.lastAction.frames[-1]):
+        while not self.isActionableState(info, action= self.lastAction[-1]):
             obs, tempReward, self.done, info = self.environment.step(Lobby.NO_ACTION)
+            if self.done: return info, obs
             if self.render: self.environment.render()
             if self.render:
                 self.environment.render()
@@ -261,4 +281,4 @@ if __name__ == "__main__":
     from Agent import Agent
     agent = Agent()
     testLobby.addPlayer(agent)
-    testLobby.executeTrainingRun(realTime= True)
+    testLobby.executeTrainingRun()

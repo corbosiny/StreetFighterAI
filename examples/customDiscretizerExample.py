@@ -41,8 +41,8 @@ class StreetFighter2Discretizer(Discretizer):
     """
     def __init__(self, env):
         super().__init__(env=env, combos=[[], 
-                                         ['UP'], 
-                                         ['DOWN'], 
+                                         ['UP'],                                     
+                                         ['DOWN'],               
                                          ['LEFT'], 
                                          ['UP', 'LEFT'],
                                          ['DOWN', 'LEFT'],
@@ -90,7 +90,6 @@ def main():
         env.render()
         action = env.action_space.sample()
         obs, rew, done, info = env.step(action)
-        print(info['status'])
         print(env.get_action_meaning(action))
         input()
 

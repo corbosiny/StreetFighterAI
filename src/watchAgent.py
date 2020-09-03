@@ -6,4 +6,8 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--name', type= str, default= None, help= 'Name of the instance that will be used when saving the model or it\'s training logs')
     args = parser.parse_args()
     qAgent = DeepQAgent(load= True, name= args.name)
-    qAgent.train(review= False, episodes= 1)
+
+    from Lobby import Lobby
+    testLobby = Lobby(render= True)
+    testLobby.addPlayer(qAgent)
+    testLobby.executeTrainingRun(review= False)

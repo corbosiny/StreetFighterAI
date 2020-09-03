@@ -1,13 +1,18 @@
-import argparse, retro, threading, os, numpy, time
+import argparse, retro, threading, os, numpy, time, random
 from collections import deque
 
 from tensorflow.python import keras
 from keras.models import load_model
 
+from DefaultMoveList import Moves
+
 class Agent():
     """ Abstract class that user created Agents should inherit from.
         Contains helper functions for launching training environments and generating training data sets.
     """
+
+    # Global constants keeping track of some input lag for some directional movements
+    # Moves following these inputs will not be picked up unless input after the lag
 
     # The indices representing what each index in a training point represent
     OBSERVATION_INDEX = 0                                                                          # The current display image of the game state
@@ -22,27 +27,60 @@ class Agent():
 
     DEFAULT_MODELS_DIR_PATH = '../models'                                                          # Default path to the dir where the trained models are saved for later access
     DEFAULT_LOGS_DIR_PATH = '../logs'                                                              # Default path to the dir where training logs are saved for user review
-    
+
     ### End of static variables 
 
-    ### Static Methods
-    def getStates():
-        """Static method that gets and returns a list of all the save state names that can be loaded
+    ### Object methods
+
+    def __init__(self, load= False, name= None, moveList= Moves):
+        """Initializes the agent and the underlying neural network
 
         Parameters
         ----------
-        None
+        load
+            A boolean flag that specifies whether to initialize the model from scratch or load in a pretrained model
+
+        name
+            A string representing the name of the model that will be used when saving the model and the training logs
+            Defaults to the class name if none are provided
+
+        moveList
+            An enum class that contains all of the allowed moves the Agent can perform
 
         Returns
         -------
-        states
-            A list of strings where each string is the name of a different save state
+        None
         """
-        files = os.listdir('../StreetFighterIISpecialChampionEdition-Genesis')
-        states = [file.split('.')[0] for file in files if file.split('.')[1] == 'state']
-        return states
+        if name is None: self.name = self.__class__.__name__
+        else: self.name = name
+        self.prepareForNextFight()
+        self.moveList = moveList
 
-    def convertMoveToFrameInputs(move):
+        if self.__class__.__name__ != "Agent":
+            self.model = self.initializeNetwork()    								            # Only invoked in child subclasses, Agent has no network
+            if load: self.loadModel()
+
+    def prepareForNextFight(self):
+        """Clears the memory of the fighter so it can prepare to record the next fight"""
+        self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
+
+    def getRandomMove(self):
+        """Returns a random set of button inputs
+
+        Parameters
+        ----------
+            action_space
+                The list of possible actions the Agent can take in the environment
+
+        Returns
+        -------
+            move 
+                A random selection from the action_space of the environment
+        """
+        move = random.choice(list(self.moveList))                                                      # Take random sample of all the button press inputs the Agent could make
+        return move                                
+
+    def convertMoveToFrameInputs(self, move, info):
         """Converts the desired move into a series of frame inputs in order to acomplish that move
 
         Parameters
@@ -57,56 +95,42 @@ class Agent():
         frameInputs
             An iterable frame inputs object containing the frame by frame input buffer for the move
         """
-        pass
+        inputs = self.moveList.getMoveInputs(move)
+        inputs = self.formatInputsForDirection(move, inputs, info)
+        return inputs
 
-    ### End of static methods
-
-    ### Object methods
-
-    def __init__(self, load= False, name= None):
-        """Initializes the agent and the underlying neural network
+    def formatInputsForDirection(self, move, frameInputs, info):
+        """Converts special move directional inputs to account for the player direction so they properly execute
 
         Parameters
         ----------
-        load
-            A boolean flag that specifies whether to initialize the model from scratch or load in a pretrained model
+        move
+            enum type named after the move to be performed
+            is used as the key into the move to inputs dic
 
-        name
-            A string representing the name of the model that will be used when saving the model and the training logs
-            Defaults to the class name if none are provided
+        frameInputs
+            An array containing the series of frame inputs for the desired move
+            In the case of a special move it has two sets of possible inputs
 
-        Returns
-        -------
-        None
-        """
-        if name is None: self.name = self.__class__.__name__
-        else: self.name = name
-        self.prepareForNextFight()
-
-        if self.__class__.__name__ != "Agent":
-            self.model = self.initializeNetwork()    								            # Only invoked in child subclasses, Agent has no network
-            if load: self.loadModel()
-
-    def prepareForNextFight(self):
-        """Clears the memory of the fighter so it can prepare to record the next fight"""
-        self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
-
-
-    def getRandomMove(self, action_space):
-        """Returns a random set of button inputs
-
-        Parameters
-        ----------
-            action_space
-                The list of possible actions the Agent can take in the environment
+        info
+            Information about the current game state we will pull the player
+            and opponent position from 
 
         Returns
         -------
-            move 
-                A random selection from the action_space of the environment
+
+        frameInputs
+            An iterable frame inputs object containing the frame by frame input buffer for the move
         """
-        move = action_space.sample()                                              # Take random sample of all the button press inputs the Agent could make
-        return move                                
+        if not self.moveList.isDirectionalMove(move):
+            return frameInputs
+
+        if info['x_position'] < info['enemy_x_position']:
+            return frameInputs[0]
+        else:
+            return frameInputs[1]
+
+        return frameInputs
 
     def recordStep(self, observation, state, reward, nextObservation, nextState, done):
         """Records the last observation, action, reward and the resultant observation about the environment for later training
@@ -185,7 +209,7 @@ class Agent():
     ### End of object methods
 
     ### Abstract methods for the child Agent to implement
-    def getMove(self, action_space, obs, info):
+    def getMove(self, obs, info):
         """Returns a set of button inputs generated by the Agent's network after looking at the current observation
 
         Parameters
@@ -205,9 +229,9 @@ class Agent():
         move
             A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
         """
-        move = self.getRandomMove(action_space)
-        self.lastAction = move
-        frameInputs = Agent.convertMoveToFrameInputs(move)
+        moveName = self.getRandomMove()
+        self.lastAction = moveName.value
+        frameInputs = self.convertMoveToFrameInputs(moveName, info)
         return frameInputs
 
     def initializeNetwork(self):

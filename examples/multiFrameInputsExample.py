@@ -1,4 +1,5 @@
 import retro
+import time
 from enum import Enum
 
 class multiFrameInput():
@@ -22,7 +23,8 @@ class Moves(Enum):
     Hadoken = 0
     Tetsumaki = 1
     DragonUppercut = 2
-
+    JumpAttack = 3
+    
 specialMovesDict = {
     Moves.Hadoken :    [[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
                         [0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
@@ -35,13 +37,13 @@ specialMovesDict = {
                            [0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
                            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                           [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]]
+                           [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]],
 }
 
 frameIndex = 0
 def getCurrentAction():
     global frameIndex
-    currentAction = specialMovesDict[Moves.Tetsumaki]
+    currentAction = specialMovesDict[Moves.Hadoken]
     frameInput = currentAction[frameIndex]
     frameIndex = (frameIndex + 1) % len(currentAction)
     return frameInput
@@ -49,9 +51,11 @@ def getCurrentAction():
 def main(game= 'StreetFighterIISpecialChampionEdition-Genesis',  state= "chunli"):
     env = retro.make(game= game, state= state)
     env.reset()
+    _, _, _, _ = env.step([0,0,0,0,0,0,0,0,0,0,0,0])
     while True:
         action = getCurrentAction()
         _, _, done, _ = env.step(action)
+        time.sleep(.01)
         env.render()
         if done:
             env.reset()
