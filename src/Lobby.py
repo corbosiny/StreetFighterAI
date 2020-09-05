@@ -96,7 +96,7 @@ class Lobby():
         self.environment = StreetFighter2Discretizer(self.environment)
         self.environment.reset()                                                               
         self.lastObservation, _, _, self.lastInfo = self.environment.step(Lobby.NO_ACTION)                   # The initial observation and state info are gathered by doing nothing the first frame and viewing the return data
-        self.lastAction = [Lobby.NO_ACTION]
+        self.lastAction, self.frameInputs = 0, [Lobby.NO_ACTION]
         self.currentJumpFrame = 0
         self.done = False
         while not self.isActionableState(self.lastInfo, Lobby.NO_ACTION):
@@ -182,7 +182,7 @@ class Lobby():
 
             # action is an iterable object that contains an input buffer representing frame by frame inputs
             # the lobby will run through these inputs and enter each one on the appropriate frames
-            self.lastAction = self.players[0].getMove(self.lastObservation, self.lastInfo)
+            self.lastAction, self.frameInputs = self.players[0].getMove(self.lastObservation, self.lastInfo)
 
             # Fully execute frame object and then wait for next actionable state
             self.lastReward = 0
@@ -190,11 +190,11 @@ class Lobby():
             info, obs = self.waitForNextActionableState(info, obs)
 
             # Record Results
-            self.players[0].recordStep(self.lastObservation, self.lastInfo, self.lastReward, obs, info, self.done)
+            self.players[0].recordStep((self.lastObservation, self.lastInfo, self.lastAction, self.lastReward, obs, info, self.done))
             self.lastObservation, self.lastInfo = [obs, info]                   # Overwrite after recording step so Agent remembers the previous state that led to this one
         
         self.environment.close()
-        self.environment.viewer.close()
+        if self.render: self.environment.viewer.close()
 
     def enterFrameInputs(self):
         """Enter each of the frame inputs in the input buffer inside the last action object supplied by the Agent
@@ -211,7 +211,7 @@ class Lobby():
         obs
             The image buffer data received from the emulator after entering all input frames
         """
-        for frame in self.lastAction:
+        for frame in self.frameInputs:
             obs, tempReward, self.done, info = self.environment.step(frame)
             if self.done: return info, obs
             if self.render: 
@@ -240,7 +240,7 @@ class Lobby():
             The image buffer data received from the emulator after finally getting to an actionable state
 
         """
-        while not self.isActionableState(info, action= self.lastAction[-1]):
+        while not self.isActionableState(info, action= self.frameInputs[-1]):
             obs, tempReward, self.done, info = self.environment.step(Lobby.NO_ACTION)
             if self.done: return info, obs
             if self.render: self.environment.render()

@@ -64,21 +64,25 @@ class Agent():
         """Clears the memory of the fighter so it can prepare to record the next fight"""
         self.memory = deque(maxlen= Agent.MAX_DATA_LENGTH)                                     # Double ended queue that stores states during the game
 
-    def getRandomMove(self):
+    def getRandomMove(self, info):
         """Returns a random set of button inputs
 
         Parameters
         ----------
-            action_space
-                The list of possible actions the Agent can take in the environment
+        info
+            Metadata dictionary about the current game state from the RAM
 
         Returns
         -------
-            move 
-                A random selection from the action_space of the environment
-        """
-        move = random.choice(list(self.moveList))                                                      # Take random sample of all the button press inputs the Agent could make
-        return move                                
+        moveName.value
+            An integer representing the move from the move list that was selected
+
+        frameInputs
+            A set of frame inputs where each number corresponds to a set of button inputs in the action space.
+        """ 
+        moveName = random.choice(list(self.moveList))                                          # Take random sample of all the button press inputs the Agent could make
+        frameInputs = self.convertMoveToFrameInputs(moveName, info)                                                   
+        return moveName.value, frameInputs                                
 
     def convertMoveToFrameInputs(self, move, info):
         """Converts the desired move into a series of frame inputs in order to acomplish that move
@@ -89,15 +93,17 @@ class Agent():
             enum type named after the move to be performed
             is used as the key into the move to inputs dic
 
+        info
+            Metadata dictionary about the current game state from the RAM
+
         Returns
         -------
-
         frameInputs
             An iterable frame inputs object containing the frame by frame input buffer for the move
         """
-        inputs = self.moveList.getMoveInputs(move)
-        inputs = self.formatInputsForDirection(move, inputs, info)
-        return inputs
+        frameInputs = self.moveList.getMoveInputs(move)
+        frameInputs = self.formatInputsForDirection(move, frameInputs, info)
+        return frameInputs
 
     def formatInputsForDirection(self, move, frameInputs, info):
         """Converts special move directional inputs to account for the player direction so they properly execute
@@ -132,34 +138,40 @@ class Agent():
 
         return frameInputs
 
-    def recordStep(self, observation, state, reward, nextObservation, nextState, done):
+    def recordStep(self, step):
         """Records the last observation, action, reward and the resultant observation about the environment for later training
         Parameters
         ----------
-        observation
-            The current display image in the form of a 2D array containing RGB values of each pixel
+        step
+            A tuple containing the following elements:
 
-        state
-            The state the Agent was presented with before it took an action.
-            A dictionary containing tagged RAM data
+            observation
+                The current display image in the form of a 2D array containing RGB values of each pixel
 
-        reward
-            The reward the agent received for taking that action
+            state
+                The state the Agent was presented with before it took an action.
+                A dictionary containing tagged RAM data
 
-        nextObservation
-            The resultant display image in the form of a 2D array containing RGB values of each pixel
+            lastAction
+                Integer representing the last move from the move list the Agent chose to pick
 
-        nextState
-            The state that the chosen action led to
+            reward
+                The reward the agent received for taking that action
 
-        done
-            Whether or not the new state marks the completion of the emulation
+            nextObservation
+                The resultant display image in the form of a 2D array containing RGB values of each pixel
+
+            nextState
+                The state that the chosen action led to
+
+            done
+                Whether or not the new state marks the completion of the emulation
 
         Returns
         -------
         None
         """
-        self.memory.append((observation, state, self.lastAction, reward, nextObservation, nextState, done)) # Steps are stored as tuples to avoid unintended changes
+        self.memory.append(step) # Steps are stored as tuples to avoid unintended changes
 
     def reviewFight(self):
         """The Agent goes over the data collected from it's last fight, prepares it, and then runs through one epoch of training on the data"""
@@ -176,8 +188,7 @@ class Agent():
 
         Returns
         -------
-        model
-            The loaded model of the agent from the specified file
+        None
         """
         self.model.load_weights(os.path.join(Agent.DEFAULT_MODELS_DIR_PATH, self.getModelName()))
         print("Model successfully loaded")
@@ -214,9 +225,6 @@ class Agent():
 
         Parameters
         ----------
-        action_space
-            The list of possible moves the Agent can take in this environment
-
         obs
             The observation of the current environment, 2D numpy array of pixel values
 
@@ -227,12 +235,13 @@ class Agent():
         Returns
         -------
         move
-            A set of button inputs in a multivariate array of the form Up, Down, Left, Right, A, B, X, Y, L, R.
+            Integer representing the move that was selected from the move list
+
+        frameInputs
+            A set of frame inputs where each number corresponds to a set of button inputs in the action space.
         """
-        moveName = self.getRandomMove()
-        self.lastAction = moveName.value
-        frameInputs = self.convertMoveToFrameInputs(moveName, info)
-        return frameInputs
+        move, frameInputs = self.getRandomMove(info)
+        return move, frameInputs
 
     def initializeNetwork(self):
         """To be implemented in child class, should initialize or load in the Agent's neural network
@@ -284,23 +293,12 @@ class Agent():
     ### End of Abstract methods
 
 
-
-# Test code where an example environment is created and an Agent plays the game by randomly sampling the action space at each decision
-# The user can specify the -r flag to render the test envionrments
-def testMain(agent, render= False):
-    env = retro.make(game= 'StreetFighterIISpecialChampionEdition-Genesis',  state= "chunli")
-    obs, info = env.reset(), None
-    while True:
-        action = agent.getMove(env.action_space, obs, info)
-        obs, _, done, info = env.step(action)
-        env.render()
-        if done:
-            obs = env.reset()
-    env.close()
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Processes agent parameters.')
     parser.add_argument('-r', '--render', action= 'store_true', help= 'Boolean flag for if the user wants the game environment to render during play')
     args = parser.parse_args()
-    randomAgent = Agent()
-    testMain(randomAgent, args.render)
+    from Lobby import Lobby
+    testLobby = Lobby(render= args.render)
+    agent = Agent()
+    testLobby.addPlayer(agent)
+    testLobby.executeTrainingRun()
